@@ -16,17 +16,12 @@ Every obsolete draft and redundant file has been pruned. Here is the verified ro
 | File / Folder Name | Role / Purpose | Kept For |
 | :--- | :--- | :--- |
 | **`firmware/`** | Production firmware source code, pin schematics, diagnostic tools, and compilation profiles for all 5 microcontrollers. | **Hardware Flashing** |
-| **`Project_Model_Trained_Files/`** | Archive containing the complete trained weights (`kaggle_run_artifacts.tar.gz`), the exported `tiny_crynet_2s.onnx` graph, and `model_data.h`. | **Golden Model Backup** |
-| **`ICD_MMSP/`** | Cloned baseline repository of the published IEEE MMSP 2025 paper (*"Infant Cry Detection in Noisy Environment Using BSConv & TFRNN"*), including the original `paper.pdf`. | **Academic Literature & Benchmark Baseline** |
-| **`tiny_crynet_esp32.py`** | PyTorch neural network definition with Blueprint Separable Convolutions (`BSConvU`) and Contrast-Aware Channel Attention (`CCALayer`). | **Model Architecture Definition** |
-| **`tiny_crynet_2s.onnx`** | 985 KB exported ONNX computational graph of the 2-second TinyCryNet model (input: `[1, 1, 81, 128]`). | **Desktop & Cloud Validation** |
-| **`model_data.h`** | 6.15 MB C header array containing the converted binary neural network weights for direct compilation into ESP32-S3 flash. | **Firmware Compilation** |
-| **`reference_pipeline.py`** | Standalone Python module for 16 kHz Log-Mel spectrogram calculation (STFT, 128 mel filters, dB scaling) mirroring the embedded ESP-DSP library. | **Audio DSP Reference** |
-| **`test_multi_node_simulation.py`** | Software-in-the-Loop (SIL) 5-controller simulator executing multi-cot acoustic propagation, RMS triggering, 320-fragment pull, and wearable alert. | **Pre-hardware E2E Verification** |
-| **`benchmark_cot_localization.py`** | 180-trial Monte-Carlo stress test proving 100% cot spatial accuracy down to $-5\text{ dB}$ SNR with acoustic decay physics. | **Thesis Chapter 4 Benchmark Data** |
-| **`verify_dsp_parity.py`** | Numerical parity test suite verifying $>99.2\%$ cosine similarity between the Python floating-point DSP and embedded C++ fixed-point DSP. | **Thesis Chapter 4 Numerical Proof** |
-| **`kaggle_fast_train_drive_backup.ipynb`** / **`.py`** | Turnkey notebook that successfully trained the model for 35 epochs on the official infant cry dataset with Google Drive checkpointing. | **Model Retraining & Reproduction** |
-| **`colab_fast_train_drive_backup.ipynb`** / **`.py`** | Google Colab equivalent of the fast training script. | **Alternative Cloud Training** |
+| **`model_artifacts/`** | Archive containing the complete trained weights (`kaggle_run_artifacts.tar.gz`), exported `tiny_crynet_2s.onnx` graph, and `model_data.h`. | **Golden Model Backup & Firmware Compilation** |
+| **`model_training/`** | PyTorch model architecture (`tiny_crynet_esp32.py`), reference DSP pipeline, and cloud training pipelines (Kaggle & Colab notebooks/scripts). | **Model Retraining & Reproduction** |
+| **`simulation_and_benchmarks/`** | Software-in-the-Loop 5-controller simulator, 180-trial Monte-Carlo cot localization benchmark, and DSP parity verification suites. | **Pre-hardware E2E Verification & Thesis Benchmarks** |
+| **`hardware_images/`** | Visual $2200 \times 1700$ breadboard wiring diagrams, vector SVGs, and interactive HTML viewer (`VIEW_ALL_SCHEMATICS.html`). | **Physical Assembly Reference** |
+| **`docs/`** | Master operational guides, deployment checklists, and testing roadmaps. | **Documentation** |
+| **`ICD_MMSP/`** | Baseline repository of the published IEEE MMSP 2025 paper (*"Infant Cry Detection in Noisy Environment Using BSConv & TFRNN"*), including `paper.pdf`. | **Academic Literature & Benchmark Baseline** |
 
 ---
 
