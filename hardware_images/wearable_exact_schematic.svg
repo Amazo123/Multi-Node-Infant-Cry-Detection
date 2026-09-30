@@ -1,0 +1,262 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1150 880" width="100%" height="100%">
+  <defs>
+    <style>
+      .bg { fill: #0d1117; }
+      .grid { stroke: #1e2633; stroke-width: 1; }
+      .card { fill: #161b22; stroke: #30363d; stroke-width: 2; rx: 8; }
+      .chip { fill: #21262d; stroke: #8b949e; stroke-width: 1.5; rx: 4; }
+      .oled { fill: #05070a; stroke: #1f6feb; stroke-width: 3; rx: 6; }
+      .title { fill: #58a6ff; font-family: monospace; font-size: 20px; font-weight: bold; }
+      .subtitle { fill: #8b949e; font-family: monospace; font-size: 13px; }
+      .header-text { fill: #f0f6fc; font-family: monospace; font-size: 14px; font-weight: bold; }
+      .pin-label { fill: #c9d1d9; font-family: monospace; font-size: 11px; }
+      .pin-box { fill: #0d1117; stroke: #388bfd; stroke-width: 1; rx: 3; }
+      .pin-pwr { fill: #210d0d; stroke: #f85149; stroke-width: 1; rx: 3; }
+      .pin-gnd { fill: #131d27; stroke: #79c0ff; stroke-width: 1; rx: 3; }
+      .text-pwr { fill: #ff7b72; font-family: monospace; font-size: 11px; font-weight: bold; }
+      .text-gnd { fill: #79c0ff; font-family: monospace; font-size: 11px; font-weight: bold; }
+      .text-data { fill: #7ee787; font-family: monospace; font-size: 11px; font-weight: bold; }
+      .text-warn { fill: #d29922; font-family: monospace; font-size: 11px; font-weight: bold; }
+      .wire-pwr { stroke: #f85149; stroke-width: 2.5; fill: none; stroke-linecap: round; }
+      .wire-gnd { stroke: #58a6ff; stroke-width: 2.5; fill: none; stroke-linecap: round; }
+      .wire-i2c { stroke: #2ea043; stroke-width: 2; fill: none; stroke-linecap: round; }
+      .wire-data { stroke: #d29922; stroke-width: 2; fill: none; stroke-linecap: round; }
+      .wire-purple { stroke: #bc8cff; stroke-width: 2; fill: none; stroke-linecap: round; }
+      .component-label { fill: #ffa657; font-family: monospace; font-size: 13px; font-weight: bold; }
+      .note { fill: #8b949e; font-family: sans-serif; font-size: 11px; }
+    </style>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1150" height="880" class="bg" />
+  <g class="grid">
+    <path d="M 0 50 L 1150 50 M 0 100 L 1150 100 M 0 150 L 1150 150 M 0 200 L 1150 200 M 0 250 L 1150 250 M 0 300 L 1150 300 M 0 350 L 1150 350 M 0 400 L 1150 400 M 0 450 L 1150 450 M 0 500 L 1150 500 M 0 550 L 1150 550 M 0 600 L 1150 600 M 0 650 L 1150 650 M 0 700 L 1150 700 M 0 750 L 1150 750 M 0 800 L 1150 800" />
+    <path d="M 50 0 L 50 880 M 100 0 L 100 880 M 150 0 L 150 880 M 200 0 L 200 880 M 250 0 L 250 880 M 300 0 L 300 880 M 350 0 L 350 880 M 400 0 L 400 880 M 450 0 L 450 880 M 500 0 L 500 880 M 550 0 L 550 880 M 600 0 L 600 880 M 650 0 L 650 880 M 700 0 L 700 880 M 750 0 L 750 880 M 800 0 L 800 880 M 850 0 L 850 880 M 900 0 L 900 880 M 950 0 L 950 880 M 1000 0 L 1000 880 M 1050 0 L 1050 880 M 1100 0 L 1100 880" />
+  </g>
+
+  <!-- Title Header -->
+  <text x="30" y="38" class="title">CAREGIVER WEARABLE WRISTBAND — EXACT HARDWARE WIRING SCHEMATIC</text>
+  <text x="30" y="58" class="subtitle">ESP32-C3 SuperMini + SSD1306 0.96" I2C OLED + IRLML2502TR MOSFET Driver + 10mm ERM Motor + 1N5819 Snubber</text>
+
+  <!-- ==================== 1. POWER SUBSYSTEM (Top Row) ==================== -->
+  <!-- Li-Po Battery -->
+  <g transform="translate(30, 90)">
+    <rect width="180" height="90" rx="6" fill="#1c2128" stroke="#e3b341" stroke-width="2" />
+    <text x="20" y="32" class="component-label">Li-Po Battery</text>
+    <text x="20" y="52" fill="#f0f6fc" font-family="monospace" font-size="14px">3.7V ~500mAh</text>
+    <text x="20" y="72" class="note">Ultra-Slim 1S Pouch</text>
+    <circle cx="150" cy="30" r="5" fill="#f85149" />
+    <text x="130" y="34" class="text-pwr">B+</text>
+    <circle cx="150" cy="65" r="5" fill="#58a6ff" />
+    <text x="130" y="69" class="text-gnd">B-</text>
+  </g>
+
+  <!-- 3.3V Low-Dropout Regulator -->
+  <g transform="translate(260, 90)">
+    <rect width="180" height="110" class="card" />
+    <text x="18" y="26" class="component-label">3.3V LDO Regulator</text>
+    <text x="18" y="42" class="note">ME6211 / AP2112K</text>
+    <rect x="15" y="55" width="30" height="18" class="pin-pwr" />
+    <text x="20" y="68" class="text-pwr">VIN</text>
+    <rect x="15" y="80" width="30" height="18" class="pin-gnd" />
+    <text x="20" y="93" class="text-gnd">GND</text>
+    <rect x="125" y="55" width="40" height="18" class="pin-pwr" />
+    <text x="128" y="68" class="text-pwr">3V3 OUT</text>
+    <rect x="125" y="80" width="40" height="18" class="pin-gnd" />
+    <text x="130" y="93" class="text-gnd">GND</text>
+  </g>
+
+  <!-- Filter Capacitors -->
+  <g transform="translate(490, 90)">
+    <rect width="320" height="110" class="card" />
+    <text x="20" y="26" class="component-label">POWER RAIL CAPACITORS</text>
+    <!-- C1 10uF -->
+    <rect x="30" y="40" width="40" height="50" rx="4" fill="#1f4287" stroke="#388bfd" />
+    <text x="36" y="70" fill="#fff" font-family="monospace" font-size="11px">10µF</text>
+    <text x="20" y="102" class="note">C1: 3.3V Bulk</text>
+    <!-- C2 100nF -->
+    <circle cx="160" cy="65" r="16" fill="#d29922" stroke="#e3b341" />
+    <text x="148" y="69" fill="#000" font-family="monospace" font-size="10px" font-weight="bold">104</text>
+    <text x="120" y="102" class="note">C2: OLED 100nF</text>
+  </g>
+
+  <!-- ==================== 2. ESP32-C3 SUPERMINI (Center) ==================== -->
+  <g transform="translate(60, 240)">
+    <!-- Board Base (Matches physical ultra-compact SuperMini photo) -->
+    <rect width="360" height="580" rx="8" fill="#161b22" stroke="#58a6ff" stroke-width="2" />
+    <!-- USB-C Port -->
+    <rect x="135" y="-12" width="90" height="24" rx="4" fill="#30363d" stroke="#8b949e" />
+    <text x="160" y="5" fill="#c9d1d9" font-family="monospace" font-size="10px">USB-C</text>
+
+    <!-- SuperMini QFN Chip -->
+    <rect x="125" y="220" width="110" height="110" rx="4" fill="#21262d" stroke="#8b949e" stroke-width="1.5" />
+    <text x="135" y="270" fill="#f0f6fc" font-family="monospace" font-size="13px" font-weight="bold">ESP32-C3</text>
+    <text x="140" y="290" fill="#8b949e" font-family="monospace" font-size="11px">SuperMini</text>
+
+    <!-- Buttons -->
+    <rect x="85" y="30" width="28" height="20" rx="3" fill="#30363d" stroke="#8b949e" />
+    <text x="94" y="44" fill="#c9d1d9" font-family="monospace" font-size="10px">RST</text>
+    <rect x="245" y="30" width="28" height="20" rx="3" fill="#30363d" stroke="#8b949e" />
+    <text x="250" y="44" fill="#c9d1d9" font-family="monospace" font-size="10px">BOOT</text>
+
+    <!-- LEFT HEADER PINS (SuperMini layout) -->
+    <g transform="translate(15, 60)">
+      <rect x="0" y="0" width="55" height="24" class="pin-pwr" />
+      <text x="12" y="16" class="text-pwr">5V/VCC</text>
+
+      <rect x="0" y="32" width="55" height="24" class="pin-gnd" />
+      <text x="16" y="48" class="text-gnd">GND</text>
+
+      <rect x="0" y="64" width="55" height="24" class="pin-pwr" />
+      <text x="16" y="80" class="text-pwr">3V3</text>
+
+      <!-- GPIO 0, 1, 2 -->
+      <rect x="0" y="128" width="55" height="24" class="pin-box" />
+      <text x="18" y="144" class="pin-label">IO 0</text>
+      <rect x="0" y="160" width="55" height="24" class="pin-box" />
+      <text x="18" y="176" class="pin-label">IO 1</text>
+      <rect x="0" y="192" width="55" height="24" class="pin-box" />
+      <text x="18" y="208" class="pin-label">IO 2</text>
+
+      <!-- GPIO 3: VIBRATION MOTOR GATE -->
+      <rect x="0" y="224" width="55" height="24" fill="#2e1313" stroke="#f85149" stroke-width="1.5" />
+      <text x="16" y="240" fill="#ff7b72" font-family="monospace" font-size="12px" font-weight="bold">IO 3</text>
+      <text x="65" y="240" class="text-pwr">← MOTOR GATE</text>
+
+      <!-- GPIO 4: OLED SDA -->
+      <rect x="0" y="256" width="55" height="24" fill="#132717" stroke="#2ea043" stroke-width="1.5" />
+      <text x="16" y="272" fill="#7ee787" font-family="monospace" font-size="12px" font-weight="bold">IO 4</text>
+      <text x="65" y="272" class="text-data">← OLED SDA</text>
+
+      <!-- GPIO 5: OLED SCL -->
+      <rect x="0" y="288" width="55" height="24" fill="#132717" stroke="#2ea043" stroke-width="1.5" />
+      <text x="16" y="304" fill="#7ee787" font-family="monospace" font-size="12px" font-weight="bold">IO 5</text>
+      <text x="65" y="304" class="text-data">← OLED SCL</text>
+    </g>
+
+    <!-- RIGHT HEADER PINS -->
+    <g transform="translate(290, 60)">
+      <rect x="0" y="0" width="55" height="24" class="pin-box" />
+      <text x="16" y="16" class="pin-label">IO 6</text>
+      <rect x="0" y="32" width="55" height="24" class="pin-box" />
+      <text x="16" y="48" class="pin-label">IO 7</text>
+      <rect x="0" y="64" width="55" height="24" class="pin-box" />
+      <text x="16" y="80" class="pin-label">IO 8</text>
+      <rect x="0" y="96" width="55" height="24" class="pin-box" />
+      <text x="16" y="112" class="pin-label">IO 9</text>
+      <rect x="0" y="128" width="55" height="24" class="pin-box" />
+      <text x="14" y="144" class="pin-label">IO 10</text>
+      <rect x="0" y="160" width="55" height="24" class="pin-box" />
+      <text x="14" y="176" class="pin-label">IO 20</text>
+      <rect x="0" y="192" width="55" height="24" class="pin-box" />
+      <text x="14" y="208" class="pin-label">IO 21</text>
+    </g>
+  </g>
+
+  <!-- ==================== 3. SSD1306 0.96" OLED DISPLAY (Top-Right) ==================== -->
+  <g transform="translate(560, 240)">
+    <rect width="460" height="260" class="oled" />
+    <rect x="30" y="25" width="400" height="150" rx="4" fill="#000" stroke="#30363d" />
+    <text x="80" y="70" fill="#58a6ff" font-family="monospace" font-size="14px">CAREGIVER ALERT</text>
+    <rect x="60" y="85" width="340" height="45" fill="#f85149" />
+    <text x="75" y="115" fill="#fff" font-family="monospace" font-size="18px" font-weight="bold">🚨 COT 02 CRY!</text>
+    <text x="80" y="155" fill="#8b949e" font-family="monospace" font-size="12px">Conf: 96% | Latency: 0.9s</text>
+
+    <!-- OLED PINS (Bottom of module) -->
+    <g transform="translate(60, 205)">
+      <rect x="0" y="0" width="60" height="24" class="pin-gnd" />
+      <text x="18" y="16" class="text-gnd">GND</text>
+
+      <rect x="80" y="0" width="60" height="24" class="pin-pwr" />
+      <text x="96" y="16" class="text-pwr">VCC</text>
+
+      <rect x="160" y="0" width="60" height="24" class="pin-box" />
+      <text x="176" y="16" class="text-data">SCL</text>
+
+      <rect x="240" y="0" width="60" height="24" class="pin-box" />
+      <text x="256" y="16" class="text-data">SDA</text>
+    </g>
+  </g>
+
+  <!-- ==================== 4. HAPTIC VIBRATION MOTOR DRIVER CIRCUIT (Bottom-Right) ==================== -->
+  <g transform="translate(560, 530)">
+    <rect width="550" height="290" class="card" />
+    <text x="20" y="28" class="component-label">HAPTIC MOTOR DRIVER (IRLML2502TR SOT-23)</text>
+
+    <!-- 10mm Coin ERM Motor -->
+    <circle cx="90" cy="140" r="45" fill="#21262d" stroke="#8b949e" stroke-width="2" />
+    <circle cx="90" cy="140" r="10" fill="#30363d" />
+    <text x="45" y="205" fill="#f0f6fc" font-family="monospace" font-size="12px" font-weight="bold">10mm ERM</text>
+    <text x="48" y="222" class="note">3V ~60mA</text>
+
+    <!-- 1N5819 Flyback Diode -->
+    <g transform="translate(190, 80)">
+      <rect x="0" y="0" width="55" height="20" rx="3" fill="#161b22" stroke="#e3b341" stroke-width="1.5" />
+      <rect x="0" y="0" width="8" height="20" fill="#f0f6fc" />
+      <text x="12" y="14" fill="#e3b341" font-family="monospace" font-size="10px">1N5819</text>
+      <text x="-40" y="-8" class="note">Cathode stripe to 3.3V</text>
+    </g>
+
+    <!-- IRLML2502TR SOT-23 MOSFET -->
+    <g transform="translate(300, 110)">
+      <rect x="0" y="0" width="85" height="60" rx="4" fill="#0d1117" stroke="#58a6ff" stroke-width="1.5" />
+      <text x="8" y="24" fill="#58a6ff" font-family="monospace" font-size="11px" font-weight="bold">IRLML2502</text>
+      <text x="15" y="44" class="note">N-MOSFET</text>
+      <!-- Pins -->
+      <circle cx="-10" cy="30" r="4" fill="#ff7b72" />
+      <text x="-35" y="34" class="text-pwr">G (Gate)</text>
+      <circle cx="95" cy="15" r="4" fill="#7ee787" />
+      <text x="105" y="19" class="text-data">D (Drain)</text>
+      <circle cx="95" cy="45" r="4" fill="#79c0ff" />
+      <text x="105" y="49" class="text-gnd">S (Source)</text>
+    </g>
+
+    <!-- Gate Resistors: R1 100 ohm series & R2 10k pulldown -->
+    <g transform="translate(200, 190)">
+      <rect x="0" y="0" width="40" height="16" rx="2" fill="#d29922" stroke="#e3b341" />
+      <text x="4" y="12" fill="#000" font-family="monospace" font-size="9px" font-weight="bold">100Ω</text>
+      <text x="-35" y="30" class="note">R1: Gate series</text>
+
+      <rect x="80" y="0" width="40" height="16" rx="2" fill="#d29922" stroke="#e3b341" />
+      <text x="86" y="12" fill="#000" font-family="monospace" font-size="9px" font-weight="bold">10kΩ</text>
+      <text x="65" y="30" class="note">R2: Pulldown to GND</text>
+    </g>
+  </g>
+
+  <!-- ==================== EXACT WIRING CONNECTIONS ==================== -->
+  <!-- Battery to 3.3V LDO -->
+  <path d="M 180 120 L 275 120 L 275 145" class="wire-pwr" />
+  <path d="M 180 155 L 250 155 L 250 170 L 275 170" class="wire-gnd" />
+
+  <!-- 3.3V LDO OUT to ESP32-C3 3V3 Pin -->
+  <path d="M 425 145 L 450 145 L 450 220 L 45 220 L 45 336 L 75 336" class="wire-pwr" />
+  <!-- LDO GND to ESP32-C3 GND -->
+  <path d="M 425 170 L 440 170 L 440 230 L 35 230 L 35 304 L 75 304" class="wire-gnd" />
+
+  <!-- 3.3V Rail to OLED VCC -->
+  <path d="M 450 220 L 670 220 L 670 445" class="wire-pwr" />
+  <!-- GND to OLED GND -->
+  <path d="M 440 230 L 590 230 L 590 445" class="wire-gnd" />
+
+  <!-- I2C: ESP32-C3 to OLED -->
+  <!-- SCL: GPIO 5 to OLED SCL -->
+  <path d="M 75 560 L 520 560 L 520 420 L 750 420 L 750 445" class="wire-data" />
+  <!-- SDA: GPIO 4 to OLED SDA -->
+  <path d="M 75 528 L 535 528 L 535 390 L 830 390 L 830 445" class="wire-i2c" />
+
+  <!-- MOTOR CONTROL: GPIO 3 to R1 100 ohm to Gate -->
+  <path d="M 75 496 L 500 496 L 500 725 L 760 725" class="wire-pwr" />
+
+  <!-- 3.3V Rail to Motor (+) Lead and Diode Cathode -->
+  <path d="M 670 220 L 670 610 L 750 610" class="wire-pwr" />
+
+  <!-- Motor (-) Lead to Diode Anode and MOSFET Drain -->
+  <path d="M 700 670 L 805 670 L 805 625 L 895 625 L 895 650 L 995 650" class="wire-i2c" />
+
+  <!-- MOSFET Source to Common GND -->
+  <path d="M 995 680 L 1020 680 L 1020 800 L 440 800 L 440 230" class="wire-gnd" />
+
+  <!-- Footer Verification Note -->
+  <rect x="30" y="835" width="1090" height="35" rx="4" fill="#161b22" stroke="#30363d" />
+  <text x="50" y="857" fill="#7ee787" font-family="monospace" font-size="12px">✓ VERIFIED: IRLML2502TR LOGIC-LEVEL GATE WITH 10k PULLED TO GND PREVENTS UNINTENDED BUZZING AT POWER-UP.</text>
+</svg>

@@ -1,0 +1,313 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1150 880" width="100%" height="100%">
+  <defs>
+    <style>
+      .bg { fill: #0d1117; }
+      .grid { stroke: #1e2633; stroke-width: 1; }
+      .card { fill: #161b22; stroke: #30363d; stroke-width: 2; rx: 8; }
+      .chip { fill: #21262d; stroke: #8b949e; stroke-width: 1.5; rx: 4; }
+      .title { fill: #58a6ff; font-family: monospace; font-size: 20px; font-weight: bold; }
+      .subtitle { fill: #8b949e; font-family: monospace; font-size: 13px; }
+      .header-text { fill: #f0f6fc; font-family: monospace; font-size: 14px; font-weight: bold; }
+      .pin-label { fill: #c9d1d9; font-family: monospace; font-size: 11px; }
+      .pin-box { fill: #0d1117; stroke: #388bfd; stroke-width: 1; rx: 3; }
+      .pin-pwr { fill: #210d0d; stroke: #f85149; stroke-width: 1; rx: 3; }
+      .pin-gnd { fill: #131d27; stroke: #79c0ff; stroke-width: 1; rx: 3; }
+      .text-pwr { fill: #ff7b72; font-family: monospace; font-size: 11px; font-weight: bold; }
+      .text-gnd { fill: #79c0ff; font-family: monospace; font-size: 11px; font-weight: bold; }
+      .text-data { fill: #7ee787; font-family: monospace; font-size: 11px; font-weight: bold; }
+      .text-warn { fill: #d29922; font-family: monospace; font-size: 11px; font-weight: bold; }
+      .wire-pwr { stroke: #f85149; stroke-width: 2.5; fill: none; stroke-linecap: round; }
+      .wire-gnd { stroke: #58a6ff; stroke-width: 2.5; fill: none; stroke-linecap: round; }
+      .wire-i2s { stroke: #2ea043; stroke-width: 2; fill: none; stroke-linecap: round; }
+      .wire-data { stroke: #d29922; stroke-width: 2; fill: none; stroke-linecap: round; }
+      .wire-purple { stroke: #bc8cff; stroke-width: 2; fill: none; stroke-linecap: round; }
+      .component-label { fill: #ffa657; font-family: monospace; font-size: 13px; font-weight: bold; }
+      .note { fill: #8b949e; font-family: sans-serif; font-size: 11px; }
+    </style>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1150" height="880" class="bg" />
+  <g class="grid">
+    <path d="M 0 50 L 1150 50 M 0 100 L 1150 100 M 0 150 L 1150 150 M 0 200 L 1150 200 M 0 250 L 1150 250 M 0 300 L 1150 300 M 0 350 L 1150 350 M 0 400 L 1150 400 M 0 450 L 1150 450 M 0 500 L 1150 500 M 0 550 L 1150 550 M 0 600 L 1150 600 M 0 650 L 1150 650 M 0 700 L 1150 700 M 0 750 L 1150 750 M 0 800 L 1150 800" />
+    <path d="M 50 0 L 50 880 M 100 0 L 100 880 M 150 0 L 150 880 M 200 0 L 200 880 M 250 0 L 250 880 M 300 0 L 300 880 M 350 0 L 350 880 M 400 0 L 400 880 M 450 0 L 450 880 M 500 0 L 500 880 M 550 0 L 550 880 M 600 0 L 600 880 M 650 0 L 650 880 M 700 0 L 700 880 M 750 0 L 750 880 M 800 0 L 800 880 M 850 0 L 850 880 M 900 0 L 900 880 M 950 0 L 950 880 M 1000 0 L 1000 880 M 1050 0 L 1050 880 M 1100 0 L 1100 880" />
+  </g>
+
+  <!-- Title Header -->
+  <text x="30" y="38" class="title">COT SENSING NODE (1, 2, 3) — EXACT HARDWARE WIRING SCHEMATIC</text>
+  <text x="30" y="58" class="subtitle">ESP32-C3 (Single-Core RISC-V) + INMP441 I2S MEMS Mic + 2-LED Status + Battery ADC Divider + TP4056 + 5V Boost</text>
+
+  <!-- ==================== 1. POWER SUBSYSTEM (Top Row) ==================== -->
+  <!-- Li-Ion Battery -->
+  <g transform="translate(30, 90)">
+    <rect width="170" height="90" rx="6" fill="#1c2128" stroke="#e3b341" stroke-width="2" />
+    <text x="20" y="32" class="component-label">Li-Ion Battery</text>
+    <text x="20" y="52" fill="#f0f6fc" font-family="monospace" font-size="14px">3.7V 2000mAh</text>
+    <text x="20" y="72" class="note">1S Pouch Cell</text>
+    <circle cx="145" cy="30" r="5" fill="#f85149" />
+    <text x="125" y="34" class="text-pwr">B+</text>
+    <circle cx="145" cy="65" r="5" fill="#58a6ff" />
+    <text x="125" y="69" class="text-gnd">B-</text>
+  </g>
+
+  <!-- TP4056 Charger -->
+  <g transform="translate(240, 90)">
+    <rect width="180" height="110" class="card" />
+    <rect x="-8" y="35" width="16" height="34" rx="3" fill="#8b949e" />
+    <text x="18" y="26" class="component-label">TP4056 Charger</text>
+    <text x="18" y="42" class="note">USB-C Input</text>
+    <!-- Pads -->
+    <rect x="18" y="55" width="30" height="18" class="pin-pwr" />
+    <text x="22" y="68" class="text-pwr">B+</text>
+    <rect x="18" y="80" width="30" height="18" class="pin-gnd" />
+    <text x="22" y="93" class="text-gnd">B-</text>
+    <rect x="130" y="55" width="38" height="18" class="pin-pwr" />
+    <text x="133" y="68" class="text-pwr">OUT+</text>
+    <rect x="130" y="80" width="38" height="18" class="pin-gnd" />
+    <text x="133" y="93" class="text-gnd">OUT-</text>
+  </g>
+
+  <!-- 5V Boost Converter -->
+  <g transform="translate(460, 90)">
+    <rect width="180" height="110" class="card" />
+    <text x="18" y="26" class="component-label">5V Boost Converter</text>
+    <text x="18" y="42" class="note">Step-Up to 5.0V</text>
+    <rect x="15" y="55" width="30" height="18" class="pin-pwr" />
+    <text x="20" y="68" class="text-pwr">IN+</text>
+    <rect x="15" y="80" width="30" height="18" class="pin-gnd" />
+    <text x="20" y="93" class="text-gnd">IN-</text>
+    <rect x="125" y="55" width="40" height="18" class="pin-pwr" />
+    <text x="128" y="68" class="text-pwr">5V OUT</text>
+    <rect x="125" y="80" width="40" height="18" class="pin-gnd" />
+    <text x="130" y="93" class="text-gnd">GND</text>
+  </g>
+
+  <!-- Power Capacitors -->
+  <g transform="translate(680, 90)">
+    <rect width="430" height="110" class="card" />
+    <text x="20" y="26" class="component-label">POWER RAIL CAPACITORS</text>
+    <!-- C1 47uF -->
+    <rect x="25" y="40" width="45" height="50" rx="4" fill="#1f4287" stroke="#388bfd" />
+    <text x="32" y="70" fill="#fff" font-family="monospace" font-size="11px">47µF</text>
+    <text x="15" y="102" class="note">C1: 5V Rail Buffer</text>
+    <!-- C2 100nF -->
+    <circle cx="160" cy="65" r="16" fill="#d29922" stroke="#e3b341" />
+    <text x="148" y="69" fill="#000" font-family="monospace" font-size="10px" font-weight="bold">104</text>
+    <text x="120" y="102" class="note">C2: 100nF Mic Decouple</text>
+    <!-- C3 100nF -->
+    <circle cx="310" cy="65" r="16" fill="#d29922" stroke="#e3b341" />
+    <text x="298" y="69" fill="#000" font-family="monospace" font-size="10px" font-weight="bold">104</text>
+    <text x="270" y="102" class="note">C3: 100nF ADC Filter</text>
+  </g>
+
+  <!-- ==================== 2. ESP32-C3 CORE BOARD (Center) ==================== -->
+  <g transform="translate(420, 240)">
+    <!-- Board Base (Matches physical square board from your photo) -->
+    <rect width="320" height="580" rx="10" fill="#161b22" stroke="#58a6ff" stroke-width="2" />
+    <!-- USB-C Top -->
+    <rect x="120" y="-12" width="80" height="24" rx="4" fill="#30363d" stroke="#8b949e" />
+    <text x="140" y="5" fill="#c9d1d9" font-family="monospace" font-size="10px">USB-C</text>
+
+    <!-- Chip Center -->
+    <rect x="100" y="170" width="120" height="120" rx="4" fill="#21262d" stroke="#8b949e" stroke-width="1.5" />
+    <text x="120" y="225" fill="#f0f6fc" font-family="monospace" font-size="13px" font-weight="bold">ESP32-C3</text>
+    <text x="110" y="245" fill="#8b949e" font-family="monospace" font-size="11px">RISC-V 160MHz</text>
+
+    <!-- Buttons -->
+    <circle cx="70" cy="540" r="12" fill="#21262d" stroke="#8b949e" />
+    <text x="66" y="544" fill="#c9d1d9" font-family="monospace" font-size="11px">B</text>
+    <circle cx="250" cy="540" r="12" fill="#21262d" stroke="#8b949e" />
+    <text x="246" y="544" fill="#c9d1d9" font-family="monospace" font-size="11px">R</text>
+
+    <!-- LEFT HEADER PINS (As printed on physical board: 5V, GND, 3V3, 20, 21, 2, 1, 0) -->
+    <g transform="translate(15, 30)">
+      <rect x="0" y="0" width="50" height="24" class="pin-pwr" />
+      <text x="15" y="16" class="text-pwr">5V</text>
+
+      <rect x="0" y="32" width="50" height="24" class="pin-gnd" />
+      <text x="12" y="48" class="text-gnd">GND</text>
+
+      <rect x="0" y="64" width="50" height="24" class="pin-pwr" />
+      <text x="12" y="80" class="text-pwr">3V3</text>
+
+      <rect x="0" y="128" width="50" height="24" class="pin-box" />
+      <text x="16" y="144" class="pin-label">20</text>
+
+      <rect x="0" y="160" width="50" height="24" class="pin-box" />
+      <text x="16" y="176" class="pin-label">21</text>
+
+      <rect x="0" y="192" width="50" height="24" class="pin-box" />
+      <text x="20" y="208" class="pin-label">2</text>
+
+      <!-- GPIO 1: BATTERY ADC -->
+      <rect x="0" y="224" width="50" height="24" fill="#132717" stroke="#2ea043" stroke-width="1.5" />
+      <text x="20" y="240" fill="#7ee787" font-family="monospace" font-size="12px" font-weight="bold">1</text>
+      <text x="56" y="240" class="component-label">← ADC1 BAT</text>
+
+      <rect x="0" y="256" width="50" height="24" class="pin-box" />
+      <text x="20" y="272" class="pin-label">0</text>
+    </g>
+
+    <!-- RIGHT HEADER PINS (As printed on physical board: 10, 9, 8, 7, 6, 5, 4, 3) -->
+    <g transform="translate(255, 30)">
+      <rect x="0" y="0" width="50" height="24" class="pin-box" />
+      <text x="16" y="16" class="pin-label">10</text>
+
+      <!-- GPIO 9: BLUE LED (Active-LOW) -->
+      <rect x="0" y="32" width="50" height="24" fill="#0c1f38" stroke="#58a6ff" stroke-width="1.5" />
+      <text x="20" y="48" fill="#58a6ff" font-family="monospace" font-size="12px" font-weight="bold">9</text>
+      <text x="-120" y="48" class="text-warn">STRAP/BLUE LED →</text>
+
+      <rect x="0" y="64" width="50" height="24" class="pin-box" />
+      <text x="20" y="80" class="pin-label">8</text>
+
+      <!-- GPIO 7: INMP441 SD -->
+      <rect x="0" y="96" width="50" height="24" fill="#1f1807" stroke="#d29922" stroke-width="1.5" />
+      <text x="20" y="112" fill="#e3b341" font-family="monospace" font-size="12px" font-weight="bold">7</text>
+      <text x="-95" y="112" class="text-data">I2S SD (DIN) →</text>
+
+      <!-- GPIO 6: INMP441 WS -->
+      <rect x="0" y="128" width="50" height="24" fill="#1f1807" stroke="#d29922" stroke-width="1.5" />
+      <text x="20" y="144" fill="#e3b341" font-family="monospace" font-size="12px" font-weight="bold">6</text>
+      <text x="-95" y="144" class="text-data">I2S WS (LRCK) →</text>
+
+      <!-- GPIO 5: INMP441 SCK -->
+      <rect x="0" y="160" width="50" height="24" fill="#1f1807" stroke="#d29922" stroke-width="1.5" />
+      <text x="20" y="176" fill="#e3b341" font-family="monospace" font-size="12px" font-weight="bold">5</text>
+      <text x="-95" y="176" class="text-data">I2S SCK (BCLK) →</text>
+
+      <!-- GPIO 4: RED LED (Active-HIGH) -->
+      <rect x="0" y="192" width="50" height="24" fill="#2e1313" stroke="#f85149" stroke-width="1.5" />
+      <text x="20" y="208" fill="#ff7b72" font-family="monospace" font-size="12px" font-weight="bold">4</text>
+      <text x="-80" y="208" class="text-pwr">RED LED →</text>
+
+      <rect x="0" y="224" width="50" height="24" class="pin-box" />
+      <text x="20" y="240" class="pin-label">3</text>
+    </g>
+  </g>
+
+  <!-- ==================== 3. INMP441 I2S MICROPHONE (Right) ==================== -->
+  <g transform="translate(850, 240)">
+    <rect width="250" height="260" class="card" />
+    <circle cx="125" cy="55" r="28" fill="#21262d" stroke="#e3b341" stroke-width="2" />
+    <circle cx="125" cy="55" r="5" fill="#000" />
+    <text x="70" y="105" class="component-label">INMP441 MEMS MIC</text>
+    <text x="90" y="122" class="note">24-bit I2S Digital</text>
+
+    <!-- Pins -->
+    <g transform="translate(20, 140)">
+      <rect x="0" y="0" width="45" height="22" class="pin-pwr" />
+      <text x="8" y="15" class="text-pwr">VDD</text>
+
+      <rect x="0" y="28" width="45" height="22" class="pin-gnd" />
+      <text x="8" y="43" class="text-gnd">GND</text>
+
+      <rect x="0" y="56" width="45" height="22" class="pin-data" />
+      <text x="8" y="71" class="text-data">SD</text>
+
+      <rect x="110" y="0" width="45" height="22" class="pin-gnd" />
+      <text x="118" y="15" class="text-gnd">L/R</text>
+
+      <rect x="110" y="28" width="45" height="22" class="pin-data" />
+      <text x="118" y="43" class="text-data">WS</text>
+
+      <rect x="110" y="56" width="45" height="22" class="pin-data" />
+      <text x="115" y="71" class="text-data">SCK</text>
+    </g>
+  </g>
+
+  <!-- ==================== 4. 2-LED STATUS SYSTEM (Bottom-Right) ==================== -->
+  <g transform="translate(850, 540)">
+    <rect width="260" height="280" class="card" />
+    <text x="20" y="28" class="component-label">2-LED STATUS INDICATOR</text>
+
+    <!-- RED LED (Active-HIGH on GPIO 4) -->
+    <circle cx="50" cy="70" r="14" fill="#f85149" stroke="#ff7b72" stroke-width="2" />
+    <text x="75" y="65" class="text-pwr">RED LED (SOC / Battery)</text>
+    <text x="75" y="80" class="note">Active-HIGH (GPIO 4 → 330Ω → Anode)</text>
+    <rect x="75" y="90" width="30" height="14" rx="2" fill="#d29922" stroke="#e3b341" />
+    <text x="78" y="101" fill="#000" font-family="monospace" font-size="9px" font-weight="bold">330Ω</text>
+    <text x="115" y="101" class="note">R_RED Limiter</text>
+
+    <!-- BLUE LED (Active-LOW on GPIO 9) -->
+    <circle cx="50" cy="165" r="14" fill="#1f6feb" stroke="#58a6ff" stroke-width="2" />
+    <text x="75" y="160" class="text-gnd">BLUE LED (ESP-NOW Link)</text>
+    <text x="75" y="175" class="text-warn">Active-LOW: 3.3V → 330Ω → Anode</text>
+    <text x="75" y="190" class="note">Cathode → GPIO 9 (Strapping Safe!)</text>
+    <rect x="75" y="200" width="30" height="14" rx="2" fill="#d29922" stroke="#e3b341" />
+    <text x="78" y="211" fill="#000" font-family="monospace" font-size="9px" font-weight="bold">330Ω</text>
+    <text x="115" y="211" class="note">R_BLUE Limiter</text>
+  </g>
+
+  <!-- ==================== 5. BATTERY VOLTAGE DIVIDER (Bottom-Left) ==================== -->
+  <g transform="translate(30, 240)">
+    <rect width="340" height="300" class="card" />
+    <text x="20" y="28" class="component-label">BATTERY MONITOR (ADC1_CH1)</text>
+    <text x="20" y="46" class="note">Ratio: 2:1 (VADC = VBAT / 2)</text>
+
+    <!-- R_TOP 100k -->
+    <rect x="50" y="80" width="40" height="18" rx="2" fill="#d29922" stroke="#e3b341" />
+    <text x="53" y="93" fill="#000" font-family="monospace" font-size="10px" font-weight="bold">100kΩ</text>
+    <text x="100" y="93" class="note">R_TOP (1% Tol) from VBAT</text>
+
+    <!-- Junction Point -->
+    <circle cx="70" cy="150" r="6" fill="#7ee787" />
+    <text x="85" y="155" class="text-data">Junction → GPIO 1 ADC</text>
+
+    <!-- R_BOT 100k -->
+    <rect x="50" y="200" width="40" height="18" rx="2" fill="#d29922" stroke="#e3b341" />
+    <text x="53" y="213" fill="#000" font-family="monospace" font-size="10px" font-weight="bold">100kΩ</text>
+    <text x="100" y="213" class="note">R_BOT to Ground</text>
+
+    <!-- C_ADC 100nF -->
+    <circle cx="160" cy="180" r="14" fill="#d29922" stroke="#e3b341" />
+    <text x="150" y="184" fill="#000" font-family="monospace" font-size="9px" font-weight="bold">104</text>
+    <text x="185" y="184" class="note">100nF filter to GND</text>
+  </g>
+
+  <!-- ==================== EXACT WIRING CONNECTIONS ==================== -->
+  <!-- Battery to TP4056 -->
+  <path d="M 175 120 L 258 120 L 258 145" class="wire-pwr" />
+  <path d="M 175 155 L 230 155 L 230 170 L 258 170" class="wire-gnd" />
+  
+  <!-- VBAT direct tap to R_TOP for ADC measurement -->
+  <path d="M 175 120 L 200 120 L 200 230 L 70 230 L 70 320" class="wire-pwr" />
+
+  <!-- TP4056 to Boost -->
+  <path d="M 408 145 L 475 145" class="wire-pwr" />
+  <path d="M 408 170 L 475 170" class="wire-gnd" />
+
+  <!-- Boost 5V to ESP32-C3 5V Input Pin -->
+  <path d="M 625 145 L 650 145 L 650 220 L 410 220 L 410 282 L 435 282" class="wire-pwr" />
+  <!-- Boost GND to ESP32-C3 GND Pin -->
+  <path d="M 625 170 L 640 170 L 640 230 L 400 230 L 400 314 L 435 314" class="wire-gnd" />
+
+  <!-- Divider Junction to GPIO 1 -->
+  <path d="M 100 390 L 435 474" class="wire-i2s" />
+
+  <!-- ESP32-C3 3V3 to INMP441 VDD -->
+  <path d="M 485 314 L 810 314 L 810 380 L 870 380" class="wire-pwr" />
+  <!-- INMP441 GND and L/R to Common Ground -->
+  <path d="M 485 346 L 820 346 L 820 408 L 870 408" class="wire-gnd" />
+  <path d="M 980 380 L 990 380 L 990 408 L 915 408" class="wire-gnd" />
+
+  <!-- I2S PINS: SCK, WS, SD -->
+  <!-- SD: GPIO 7 to INMP441 SD -->
+  <path d="M 725 336 L 790 336 L 790 436 L 870 436" class="wire-data" />
+  <!-- WS: GPIO 6 to INMP441 WS -->
+  <path d="M 725 368 L 800 368 L 800 464 L 980 464 L 980 408" class="wire-purple" />
+  <!-- SCK: GPIO 5 to INMP441 SCK -->
+  <path d="M 725 400 L 830 400 L 830 492 L 980 492 L 980 436" class="wire-i2s" />
+
+  <!-- RED LED: GPIO 4 to Resistor to Anode -->
+  <path d="M 725 432 L 840 432 L 840 635 L 925 635" class="wire-pwr" />
+  <path d="M 900 610 L 840 610 L 840 346" class="wire-gnd" />
+
+  <!-- BLUE LED: 3.3V to Resistor to Anode, Cathode to GPIO 9 -->
+  <path d="M 485 314 L 500 314 L 500 745 L 925 745" class="wire-pwr" />
+  <path d="M 725 272 L 770 272 L 770 705 L 900 705" class="wire-gnd" />
+
+  <!-- Footer Verification Note -->
+  <rect x="30" y="835" width="1090" height="35" rx="4" fill="#161b22" stroke="#30363d" />
+  <text x="50" y="857" fill="#7ee787" font-family="monospace" font-size="12px">✓ VERIFIED: GPIO 9 ACTIVE-LOW BOOT STRAPPING SAFE (PULLED HIGH AT RESET). ADC1 IMMUNE TO WI-FI SHUTDOWN.</text>
+</svg>

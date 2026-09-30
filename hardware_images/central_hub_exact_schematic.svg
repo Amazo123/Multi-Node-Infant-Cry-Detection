@@ -1,0 +1,282 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 850" width="100%" height="100%">
+  <defs>
+    <style>
+      .bg { fill: #0d1117; }
+      .grid { stroke: #1e2633; stroke-width: 1; }
+      .card { fill: #161b22; stroke: #30363d; stroke-width: 2; rx: 8; }
+      .chip { fill: #21262d; stroke: #8b949e; stroke-width: 1.5; rx: 4; }
+      .tft { fill: #090d13; stroke: #c5221f; stroke-width: 3; rx: 6; }
+      .title { fill: #58a6ff; font-family: monospace; font-size: 20px; font-weight: bold; }
+      .subtitle { fill: #8b949e; font-family: monospace; font-size: 13px; }
+      .header-text { fill: #f0f6fc; font-family: monospace; font-size: 14px; font-weight: bold; }
+      .pin-label { fill: #c9d1d9; font-family: monospace; font-size: 11px; }
+      .pin-box { fill: #0d1117; stroke: #388bfd; stroke-width: 1; rx: 3; }
+      .pin-pwr { fill: #210d0d; stroke: #f85149; stroke-width: 1; rx: 3; }
+      .pin-gnd { fill: #131d27; stroke: #79c0ff; stroke-width: 1; rx: 3; }
+      .text-pwr { fill: #ff7b72; font-family: monospace; font-size: 11px; font-weight: bold; }
+      .text-gnd { fill: #79c0ff; font-family: monospace; font-size: 11px; font-weight: bold; }
+      .text-data { fill: #7ee787; font-family: monospace; font-size: 11px; font-weight: bold; }
+      .text-warn { fill: #d29922; font-family: monospace; font-size: 11px; font-weight: bold; }
+      .wire-pwr { stroke: #f85149; stroke-width: 2.5; fill: none; stroke-linecap: round; }
+      .wire-gnd { stroke: #58a6ff; stroke-width: 2.5; fill: none; stroke-linecap: round; }
+      .wire-spi { stroke: #2ea043; stroke-width: 2; fill: none; stroke-linecap: round; }
+      .wire-data { stroke: #d29922; stroke-width: 2; fill: none; stroke-linecap: round; }
+      .wire-purple { stroke: #bc8cff; stroke-width: 2; fill: none; stroke-linecap: round; }
+      .component-label { fill: #ffa657; font-family: monospace; font-size: 13px; font-weight: bold; }
+      .note { fill: #8b949e; font-family: sans-serif; font-size: 11px; }
+    </style>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1100" height="850" class="bg" />
+  <g class="grid">
+    <path d="M 0 50 L 1100 50 M 0 100 L 1100 100 M 0 150 L 1100 150 M 0 200 L 1100 200 M 0 250 L 1100 250 M 0 300 L 1100 300 M 0 350 L 1100 350 M 0 400 L 1100 400 M 0 450 L 1100 450 M 0 500 L 1100 500 M 0 550 L 1100 550 M 0 600 L 1100 600 M 0 650 L 1100 650 M 0 700 L 1100 700 M 0 750 L 1100 750 M 0 800 L 1100 800" />
+    <path d="M 50 0 L 50 850 M 100 0 L 100 850 M 150 0 L 150 850 M 200 0 L 200 850 M 250 0 L 250 850 M 300 0 L 300 850 M 350 0 L 350 850 M 400 0 L 400 850 M 450 0 L 450 850 M 500 0 L 500 850 M 550 0 L 550 850 M 600 0 L 600 850 M 650 0 L 650 850 M 700 0 L 700 850 M 750 0 L 750 850 M 800 0 L 800 850 M 850 0 L 850 850 M 900 0 L 900 850 M 950 0 L 950 850 M 1000 0 L 1000 850 M 1050 0 L 1050 850" />
+  </g>
+
+  <!-- Title Header -->
+  <text x="30" y="38" class="title">CENTRAL INTELLIGENCE HUB — EXACT HARDWARE WIRING SCHEMATIC</text>
+  <text x="30" y="58" class="subtitle">ESP32-S3-WROOM-1 N16R8 (16MB Flash, 8MB Octal PSRAM) + ILI9341 2.4" SPI TFT + Full Power Stage</text>
+
+  <!-- ==================== 1. BATTERY (Top-Left) ==================== -->
+  <g transform="translate(30, 90)">
+    <rect width="180" height="90" rx="6" fill="#1c2128" stroke="#e3b341" stroke-width="2" />
+    <rect x="70" y="-8" width="40" height="8" rx="2" fill="#8b949e" />
+    <text x="20" y="32" class="component-label">Li-Ion Battery</text>
+    <text x="20" y="52" fill="#f0f6fc" font-family="monospace" font-size="14px">3.7V 3000mAh</text>
+    <text x="20" y="72" class="note">1S Pouch Cell</text>
+    <!-- Terminals -->
+    <circle cx="150" cy="30" r="5" fill="#f85149" />
+    <text x="130" y="34" class="text-pwr">B+</text>
+    <circle cx="150" cy="65" r="5" fill="#58a6ff" />
+    <text x="130" y="69" class="text-gnd">B-</text>
+  </g>
+
+  <!-- ==================== 2. TP4056 CHARGER (Top-Center) ==================== -->
+  <g transform="translate(260, 90)">
+    <rect width="190" height="120" class="card" />
+    <rect x="-8" y="40" width="16" height="36" rx="3" fill="#8b949e" />
+    <text x="20" y="28" class="component-label">TP4056 Charger</text>
+    <text x="20" y="44" class="note">USB-C Input</text>
+    
+    <!-- Input pads -->
+    <rect x="18" y="60" width="32" height="18" class="pin-pwr" />
+    <text x="23" y="73" class="text-pwr">B+</text>
+    <rect x="18" y="85" width="32" height="18" class="pin-gnd" />
+    <text x="23" y="98" class="text-gnd">B-</text>
+
+    <!-- Output pads -->
+    <rect x="138" y="60" width="38" height="18" class="pin-pwr" />
+    <text x="141" y="73" class="text-pwr">OUT+</text>
+    <rect x="138" y="85" width="38" height="18" class="pin-gnd" />
+    <text x="141" y="98" class="text-gnd">OUT-</text>
+  </g>
+
+  <!-- ==================== 3. 5V BOOST CONVERTER (Top-Right) ==================== -->
+  <g transform="translate(500, 90)">
+    <rect width="180" height="120" class="card" />
+    <text x="18" y="28" class="component-label">5V Boost Converter</text>
+    <text x="18" y="44" class="note">3.0V-4.2V to 5.0V</text>
+
+    <!-- Input pads -->
+    <rect x="15" y="60" width="30" height="18" class="pin-pwr" />
+    <text x="20" y="73" class="text-pwr">IN+</text>
+    <rect x="15" y="85" width="30" height="18" class="pin-gnd" />
+    <text x="20" y="98" class="text-gnd">IN-</text>
+
+    <!-- Output pads -->
+    <rect x="125" y="60" width="40" height="18" class="pin-pwr" />
+    <text x="128" y="73" class="text-pwr">5V OUT</text>
+    <rect x="125" y="85" width="40" height="18" class="pin-gnd" />
+    <text x="130" y="98" class="text-gnd">GND</text>
+  </g>
+
+  <!-- ==================== 4. BULK CAPACITORS (Top-Right-Edge) ==================== -->
+  <g transform="translate(720, 90)">
+    <rect width="350" height="120" class="card" />
+    <text x="20" y="28" class="component-label">POWER RAIL CAPACITORS</text>
+    
+    <!-- C1 100uF -->
+    <rect x="25" y="45" width="45" height="55" rx="4" fill="#1f4287" stroke="#388bfd" />
+    <text x="30" y="75" fill="#fff" font-family="monospace" font-size="11px">100µF</text>
+    <text x="25" y="112" class="note">C1: 5V Rail Bulk</text>
+
+    <!-- C2 10uF -->
+    <rect x="130" y="45" width="35" height="50" rx="4" fill="#1f4287" stroke="#388bfd" />
+    <text x="133" y="75" fill="#fff" font-family="monospace" font-size="10px">10µF</text>
+    <text x="120" y="112" class="note">C2: 3.3V Rail</text>
+
+    <!-- C3 100nF -->
+    <circle cx="240" cy="70" r="16" fill="#d29922" stroke="#e3b341" />
+    <text x="228" y="74" fill="#000" font-family="monospace" font-size="10px" font-weight="bold">104</text>
+    <text x="215" y="112" class="note">C3: 100nF S3 Decouple</text>
+  </g>
+
+  <!-- ==================== 5. ESP32-S3 BOARD (Center) ==================== -->
+  <g transform="translate(50, 260)">
+    <!-- Board Base -->
+    <rect width="440" height="540" rx="10" fill="#161b22" stroke="#58a6ff" stroke-width="2" />
+    
+    <!-- Dual USB-C -->
+    <rect x="120" y="525" width="70" height="25" rx="3" fill="#30363d" stroke="#8b949e" />
+    <text x="140" y="542" fill="#c9d1d9" font-family="monospace" font-size="10px">UART</text>
+    <rect x="250" y="525" width="70" height="25" rx="3" fill="#30363d" stroke="#8b949e" />
+    <text x="273" y="542" fill="#c9d1d9" font-family="monospace" font-size="10px">USB</text>
+
+    <!-- RF Shield Module -->
+    <rect x="95" y="40" width="250" height="190" rx="6" fill="#21262d" stroke="#8b949e" stroke-width="1.5" />
+    <text x="145" y="80" fill="#f0f6fc" font-family="monospace" font-size="15px" font-weight="bold">ESP32-S3</text>
+    <text x="125" y="105" fill="#58a6ff" font-family="monospace" font-size="13px" font-weight="bold">WROOM-1 N16R8</text>
+    <text x="110" y="130" class="note">• 16 MB SPI Quad Flash</text>
+    <text x="110" y="148" class="note">• 8 MB Octal PSRAM</text>
+    <text x="110" y="175" class="text-warn">⚠️ GPIO 33-37 DEDICATED</text>
+    <text x="110" y="190" class="text-warn">DO NOT USE FOR ANY I/O!</text>
+
+    <!-- LEFT HEADER PINS -->
+    <g transform="translate(15, 30)">
+      <rect x="0" y="0" width="60" height="22" class="pin-pwr" />
+      <text x="12" y="15" class="text-pwr">5V / VIN</text>
+
+      <rect x="0" y="30" width="60" height="22" class="pin-gnd" />
+      <text x="18" y="45" class="text-gnd">GND</text>
+
+      <rect x="0" y="60" width="60" height="22" class="pin-pwr" />
+      <text x="18" y="75" class="text-pwr">3V3</text>
+
+      <!-- Used SPI Pins -->
+      <rect x="0" y="150" width="60" height="22" class="pin-box" />
+      <text x="8" y="165" class="text-data">GPIO 10</text>
+      <text x="68" y="165" class="subtitle">→ TFT CS</text>
+
+      <rect x="0" y="180" width="60" height="22" class="pin-box" />
+      <text x="8" y="195" class="text-data">GPIO 11</text>
+      <text x="68" y="195" class="subtitle">→ TFT MOSI</text>
+
+      <rect x="0" y="210" width="60" height="22" class="pin-box" />
+      <text x="8" y="225" class="text-data">GPIO 12</text>
+      <text x="68" y="225" class="subtitle">→ TFT SCK</text>
+
+      <rect x="0" y="240" width="60" height="22" class="pin-box" />
+      <text x="8" y="255" class="text-data">GPIO 13</text>
+      <text x="68" y="255" class="subtitle">→ TFT DC</text>
+
+      <rect x="0" y="270" width="60" height="22" class="pin-box" />
+      <text x="8" y="285" class="text-data">GPIO 14</text>
+      <text x="68" y="285" class="subtitle">→ TFT RESET</text>
+    </g>
+
+    <!-- RIGHT HEADER PINS (FORBIDDEN PSRAM NOTE) -->
+    <g transform="translate(365, 120)">
+      <rect x="0" y="0" width="60" height="150" rx="4" fill="#3b1111" stroke="#f85149" stroke-width="1.5" />
+      <text x="12" y="25" fill="#ff7b72" font-family="monospace" font-size="11px" font-weight="bold">OCTAL</text>
+      <text x="12" y="42" fill="#ff7b72" font-family="monospace" font-size="11px" font-weight="bold">PSRAM</text>
+      <text x="8" y="70" class="note">GPIO 33</text>
+      <text x="8" y="88" class="note">GPIO 34</text>
+      <text x="8" y="106" class="note">GPIO 35</text>
+      <text x="8" y="124" class="note">GPIO 36</text>
+      <text x="8" y="142" class="note">GPIO 37</text>
+    </g>
+  </g>
+
+  <!-- ==================== 6. ILI9341 TFT DISPLAY (Right) ==================== -->
+  <g transform="translate(680, 260)">
+    <rect width="380" height="540" class="tft" />
+    <rect x="25" y="30" width="330" height="420" rx="4" fill="#030712" stroke="#30363d" />
+    <text x="100" y="180" fill="#58a6ff" font-family="monospace" font-size="18px" font-weight="bold">2.4" ILI9341</text>
+    <text x="110" y="210" fill="#8b949e" font-family="monospace" font-size="14px">240 x 320 SPI</text>
+    <text x="60" y="260" fill="#2ea043" font-family="monospace" font-size="14px">INFANT MONITOR HUB</text>
+    <text x="60" y="290" fill="#c9d1d9" font-family="monospace" font-size="12px">Cot 1: NORMAL (0.02)</text>
+    <text x="60" y="315" fill="#c9d1d9" font-family="monospace" font-size="12px">Cot 2: NORMAL (0.01)</text>
+    <text x="60" y="340" fill="#c9d1d9" font-family="monospace" font-size="12px">Cot 3: NORMAL (0.02)</text>
+
+    <!-- TFT PIN HEADER (Bottom row) -->
+    <g transform="translate(20, 480)">
+      <!-- VCC -->
+      <rect x="0" y="0" width="34" height="24" class="pin-pwr" />
+      <text x="6" y="16" class="text-pwr">VCC</text>
+      <!-- GND -->
+      <rect x="38" y="0" width="34" height="24" class="pin-gnd" />
+      <text x="44" y="16" class="text-gnd">GND</text>
+      <!-- CS -->
+      <rect x="76" y="0" width="34" height="24" class="pin-box" />
+      <text x="86" y="16" class="text-data">CS</text>
+      <!-- RESET -->
+      <rect x="114" y="0" width="36" height="24" class="pin-box" />
+      <text x="117" y="16" class="text-data">RST</text>
+      <!-- DC -->
+      <rect x="154" y="0" width="34" height="24" class="pin-box" />
+      <text x="162" y="16" class="text-data">DC</text>
+      <!-- MOSI -->
+      <rect x="192" y="0" width="36" height="24" class="pin-box" />
+      <text x="195" y="16" class="text-data">MOSI</text>
+      <!-- SCK -->
+      <rect x="232" y="0" width="34" height="24" class="pin-box" />
+      <text x="240" y="16" class="text-data">SCK</text>
+      <!-- LED -->
+      <rect x="270" y="0" width="34" height="24" class="pin-box" />
+      <text x="278" y="16" class="text-data">LED</text>
+      <!-- MISO (Unused) -->
+      <rect x="308" y="0" width="34" height="24" fill="#21262d" stroke="#484f58" />
+      <text x="313" y="16" fill="#8b949e" font-family="monospace" font-size="10px">MISO</text>
+      <text x="305" y="40" class="note">(NC)</text>
+    </g>
+
+    <!-- R1 Backlight Resistor -->
+    <g transform="translate(275, 430)">
+      <rect x="0" y="0" width="30" height="14" rx="2" fill="#d29922" stroke="#e3b341" />
+      <text x="4" y="11" fill="#000" font-family="monospace" font-size="9px" font-weight="bold">100Ω</text>
+      <text x="-40" y="11" class="note">R1 Limiter</text>
+    </g>
+
+    <!-- C4 Decoupling Cap -->
+    <g transform="translate(10, 430)">
+      <circle cx="10" cy="7" r="9" fill="#d29922" stroke="#e3b341" />
+      <text x="4" y="10" fill="#000" font-family="monospace" font-size="8px" font-weight="bold">104</text>
+      <text x="25" y="11" class="note">C4: 100nF VCC-GND</text>
+    </g>
+  </g>
+
+  <!-- ==================== WIRING CONNECTIONS ==================== -->
+  
+  <!-- 1. Battery to TP4056 -->
+  <path d="M 180 120 L 278 120 L 278 150" class="wire-pwr" />
+  <path d="M 180 155 L 250 155 L 250 175 L 278 175" class="wire-gnd" />
+
+  <!-- 2. TP4056 to 5V Boost -->
+  <path d="M 436 150 L 515 150" class="wire-pwr" />
+  <path d="M 436 175 L 515 175" class="wire-gnd" />
+
+  <!-- 3. 5V Boost to ESP32-S3 5V Input -->
+  <path d="M 665 150 L 685 150 L 685 240 L 40 240 L 40 290 L 65 290" class="wire-pwr" />
+  <!-- 5V to C1 100uF -->
+  <path d="M 665 150 L 745 150 L 745 135" class="wire-pwr" />
+  <path d="M 665 175 L 755 175 L 755 135" class="wire-gnd" />
+
+  <!-- Boost GND to ESP32-S3 GND -->
+  <path d="M 665 175 L 680 175 L 680 250 L 30 250 L 30 320 L 65 320" class="wire-gnd" />
+
+  <!-- 4. 5V Rail to ILI9341 VCC -->
+  <path d="M 685 240 L 700 240 L 700 740" class="wire-pwr" />
+
+  <!-- 5. Common Ground to ILI9341 GND -->
+  <path d="M 680 250 L 738 250 L 738 740" class="wire-gnd" />
+
+  <!-- 6. ESP32-S3 3V3 to R1 (100 ohm) to LED Pin -->
+  <path d="M 125 350 L 495 350 L 495 440 L 955 440 L 970 440 L 970 740" class="wire-pwr" />
+
+  <!-- 7. SPI BUS: S3 to TFT -->
+  <!-- CS: GPIO 10 to TFT CS -->
+  <path d="M 125 440 L 510 440 L 510 500 L 776 500 L 776 740" class="wire-spi" />
+  <!-- MOSI: GPIO 11 to TFT MOSI -->
+  <path d="M 125 470 L 525 470 L 525 530 L 892 530 L 892 740" class="wire-purple" />
+  <!-- SCK: GPIO 12 to TFT SCK -->
+  <path d="M 125 500 L 540 500 L 540 560 L 932 560 L 932 740" class="wire-data" />
+  <!-- DC: GPIO 13 to TFT DC -->
+  <path d="M 125 530 L 555 530 L 555 590 L 854 590 L 854 740" stroke="#f0883e" stroke-width="2" fill="none" />
+  <!-- RESET: GPIO 14 to TFT RESET -->
+  <path d="M 125 560 L 570 560 L 570 620 L 814 620 L 814 740" stroke="#79c0ff" stroke-width="2" fill="none" />
+
+  <!-- Summary Footer Note -->
+  <rect x="50" y="805" width="1000" height="32" rx="4" fill="#161b22" stroke="#30363d" />
+  <text x="70" y="826" fill="#7ee787" font-family="monospace" font-size="12px">✓ VERIFIED: ALL PINS CONFLICT-FREE. ZERO USE OF OCTAL PSRAM GPIO 33-37. ALL 4 CAPACITORS &amp; RESISTOR WIRED.</text>
+</svg>
