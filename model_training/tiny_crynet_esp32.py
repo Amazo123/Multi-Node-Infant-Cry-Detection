@@ -132,12 +132,21 @@ class TinyCryNet_ESP32(nn.Module):
         return out
 
 if __name__ == "__main__":
-    # Test shape for 2-second audio (16kHz, hop 400 -> 80 frames, 128 mel bins)
-    sample_input = torch.randn(2, 1, 80, 128)
-    model = TinyCryNet_ESP32(temporal_type="gru")
-    output = model(sample_input)
-    print("TinyCryNet_ESP32 initialized successfully.")
-    print("Input shape:", sample_input.shape)
-    print("Output shape:", output.shape)
-    params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    print(f"Total Trainable Parameters: {params:,} (Paper: 1,540,000)")
+    # Test shape for 2-second audio (16kHz, hop 400 -> 81 frames, 128 mel bins)
+    # Frame count: ceil(32000 / 400) + 1 = 81 with center-padded STFT
+    sample_input = torch.randn(2, 1, 81, 128)
+
+    # 1. Test GRU variant (higher accuracy, requires ONNX runtime)
+    model_gru = TinyCryNet_ESP32(temporal_type="gru")
+    output_gru = model_gru(sample_input)
+    params_gru = sum(p.numel() for p in model_gru.parameters() if p.requires_grad)
+    print(f"[GRU Variant]  Input: {sample_input.shape} -> Output: {output_gru.shape} | Params: {params_gru:,}")
+
+    # 2. Test Conv1D variant (TFLite Micro compatible, recommended for ESP32-S3)
+    model_conv = TinyCryNet_ESP32(temporal_type="conv1d")
+    output_conv = model_conv(sample_input)
+    params_conv = sum(p.numel() for p in model_conv.parameters() if p.requires_grad)
+    print(f"[Conv1D Variant] Input: {sample_input.shape} -> Output: {output_conv.shape} | Params: {params_conv:,}")
+
+    print(f"\nRecommendation: Use 'conv1d' for ESP32-S3 TFLite deployment (fully supported ops).")
+    print(f"                Use 'gru' for desktop ONNX inference only.")

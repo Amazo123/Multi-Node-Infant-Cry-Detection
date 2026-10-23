@@ -4,6 +4,8 @@ This directory contains standalone diagnostic firmware tools to verify individua
 
 Testing each module independently eliminates guesswork and ensures that faulty wiring, dry solder joints, or dead ICs are caught immediately.
 
+> 📖 **COMPLETE WIRING MANUAL:** For detailed schematics, breadboard hookup tables, and troubleshooting steps for every test, consult the project-wide [SYSTEM_WIRING_GUIDE.md](../../SYSTEM_WIRING_GUIDE.md).
+
 ---
 
 ## Tool 1: INMP441 I2S Microphone Checkout (`01_inmp441_audio_plotter`)

@@ -36,7 +36,7 @@ typedef enum {
 
 /**
  * @brief TIER 1: Periodic Node Telemetry Packet (~100ms interval)
- * Total Size: 12 bytes
+ * Total Size: 14 bytes (packed: 1+1+2+4+4+2)
  */
 typedef struct __attribute__((packed)) {
     uint8_t  msg_type;      // MSG_TYPE_TELEMETRY
@@ -44,7 +44,7 @@ typedef struct __attribute__((packed)) {
     uint16_t seq_num;       // Monotonically increasing sequence number
     uint32_t timestamp_ms;  // Uptime in ms
     float    rms_amplitude; // Calculated 100ms RMS energy
-    uint16_t battery_mv;    // Battery millivolts from MAX17048
+    uint16_t battery_mv;    // Battery millivolts from resistor divider ADC (100k/100k on GPIO 1)
 } telemetry_packet_t;
 
 /**

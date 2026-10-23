@@ -47,6 +47,106 @@ if not os.path.exists(repo_results):
 
 print(f"✅ Checkpoint symlink configured: {repo_results} -> {DRIVE_CKPT_DIR}")
 
+# ──────────────────────────────────────────────────────────────────────
+# CRITICAL FIX: Write TinyCryNet_ESP32 into the cloned repo so
+# SpeechBrain trains the CORRECT model (not the 12M-param proposed_model)
+# ──────────────────────────────────────────────────────────────────────
+tiny_crynet_module = '''
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+class BSConvU(nn.Module):
+    def __init__(self, in_channels, out_channels, kernel_size=3, stride=1, padding=1, bias=True, **kwargs):
+        super().__init__()
+        self.pw = nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=1, padding=0, bias=False)
+        self.dw = nn.Conv2d(out_channels, out_channels, kernel_size=kernel_size, stride=stride,
+                            padding=padding, groups=out_channels, bias=bias)
+    def forward(self, x):
+        return self.dw(self.pw(x))
+
+class CCALayer(nn.Module):
+    def __init__(self, channel, reduction=8):
+        super().__init__()
+        self.avg_pool = nn.AdaptiveAvgPool2d(1)
+        self.conv_du = nn.Sequential(
+            nn.Conv2d(channel, max(8, channel // reduction), 1, padding=0, bias=True),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(max(8, channel // reduction), channel, 1, padding=0, bias=True),
+            nn.Sigmoid(),
+        )
+    def forward(self, x):
+        mean = x.mean(dim=(2, 3), keepdim=True)
+        var = ((x - mean) ** 2).mean(dim=(2, 3), keepdim=True)
+        contrast = torch.sqrt(var + 1e-8)
+        y = contrast + self.avg_pool(x)
+        return x * self.conv_du(y)
+
+class CompactConvBlock(nn.Module):
+    def __init__(self, in_channels, out_channels, kernel_size=3, stride=1, padding=1):
+        super().__init__()
+        self.conv1 = BSConvU(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=padding)
+        self.bn1 = nn.BatchNorm2d(out_channels)
+        self.conv2 = BSConvU(out_channels, out_channels, kernel_size=kernel_size, stride=1, padding=padding)
+        self.bn2 = nn.BatchNorm2d(out_channels)
+    def forward(self, x, pool_size=(2, 2)):
+        x = F.relu(self.bn1(self.conv1(x)))
+        x = F.relu(self.bn2(self.conv2(x)))
+        if pool_size is not None:
+            x = F.avg_pool2d(x, kernel_size=pool_size)
+        return x
+
+class TinyCryNet_ESP32(nn.Module):
+    """Edge-optimized infant cry classifier for ESP32-S3 deployment."""
+    def __init__(self, in_channels=1, classes_num=2, activation="logsoftmax", temporal_type="conv1d"):
+        super().__init__()
+        self.activation = activation
+        self.temporal_type = temporal_type
+        self.block1 = CompactConvBlock(in_channels, 32)
+        self.block2 = CompactConvBlock(32, 64)
+        self.block3 = CompactConvBlock(64, 128)
+        self.block4 = CompactConvBlock(128, 128)
+        self.block5 = CompactConvBlock(128, 128)
+        self.fuse_conv = nn.Conv2d(128 * 3, 128, kernel_size=1)
+        self.cca = CCALayer(128)
+        if temporal_type == "gru":
+            self.temporal = nn.GRU(input_size=128, hidden_size=64, num_layers=1, batch_first=True, bidirectional=True)
+            fc_in = 128
+        else:
+            self.temporal = nn.Sequential(nn.Conv1d(128, 64, kernel_size=3, padding=1), nn.ReLU(), nn.AdaptiveAvgPool1d(1))
+            fc_in = 64
+        self.classifier = nn.Sequential(
+            nn.Linear(fc_in, 64), nn.ReLU(), nn.Dropout(0.3), nn.Linear(64, classes_num)
+        )
+    def forward(self, x):
+        if x.dim() == 3:
+            x = x.unsqueeze(1)
+        x1 = self.block1(x, pool_size=(2, 2))
+        x2 = self.block2(x1, pool_size=(2, 2))
+        x3 = self.block3(x2, pool_size=(2, 2))
+        x4 = self.block4(x3, pool_size=None)
+        x5 = self.block5(x4, pool_size=None)
+        fused = torch.cat([x3, x4, x5], dim=1)
+        fused = self.fuse_conv(fused)
+        fused = self.cca(fused)
+        f_pooled = torch.mean(fused, dim=3)
+        if self.temporal_type == "gru":
+            seq = f_pooled.permute(0, 2, 1)
+            gru_out, _ = self.temporal(seq)
+            t_pooled = torch.mean(gru_out, dim=1)
+        else:
+            t_pooled = self.temporal(f_pooled).squeeze(-1)
+        out = self.classifier(t_pooled)
+        if self.activation == "logsoftmax":
+            out = F.log_softmax(out, dim=-1)
+        return out
+'''
+
+tiny_crynet_path = os.path.join(REPO_DIR, "model", "tiny_crynet_esp32.py")
+with open(tiny_crynet_path, "w") as f:
+    f.write(tiny_crynet_module)
+print(f"✅ Wrote TinyCryNet_ESP32 model into: {tiny_crynet_path}")
+
 # %% [markdown]
 # ### STEP 3: Fast Download & Flatten Dataset from Hugging Face
 
@@ -160,8 +260,8 @@ valid_fold_nums: [5]
 skip_manifest_creation: True
 ckpt_interval_minutes: 10
 
-# High-Speed Training Parameters (35 epochs, ~2.8 - 3.5 hrs)
-number_of_epochs: 35
+# Optimized Training Parameters (50 epochs for better convergence)
+number_of_epochs: 50
 batch_size: 64
 lr: 0.001
 base_lr: 0.00001
@@ -200,10 +300,13 @@ compute_features: !new:torchaudio.transforms.MelSpectrogram
     n_mels: !ref <n_mels>
     mel_scale: \"htk\"
 
-# Model Architecture
-embedding_model: !new:model.proposed_model.proposed_model
+# ──────────────────────────────────────────────────────────────────────
+# CRITICAL FIX: Train TinyCryNet_ESP32 DIRECTLY (NOT proposed_model)
+# ──────────────────────────────────────────────────────────────────────
+embedding_model: !new:model.tiny_crynet_esp32.TinyCryNet_ESP32
     classes_num: !ref <out_n_neurons>
     activation: \"logsoftmax\"
+    temporal_type: \"conv1d\"
 
 classifier: !new:torch.nn.Identity
 
@@ -220,9 +323,9 @@ modules:
 compute_cost: !name:speechbrain.nnet.losses.nll_loss
 compute_error: !name:speechbrain.nnet.losses.classification_error
 
-opt_class: !name:torch.optim.Adam
+opt_class: !name:torch.optim.AdamW
     lr: !ref <lr>
-    weight_decay: 0.0001
+    weight_decay: 0.01
 
 lr_annealing: !new:speechbrain.nnet.schedulers.CyclicLRScheduler
     base_lr: !ref <base_lr>
@@ -260,10 +363,13 @@ print("✅ Configured hparams_fast.yaml successfully!")
 !python train_test.py hparams_fast.yaml
 
 # %% [markdown]
-# ### STEP 7: Embedded TinyCryNet Definition & Dual-Track ONNX/C-Header Export
+# ### STEP 7: ONNX Export → TFLite Conversion → ESP32 C-Header Generation
 
 # %%
+!pip install -q onnx2tf tensorflow onnx_graphsurgeon sng4onnx flatbuffers
+
 import os
+import sys
 import glob
 import shutil
 import torch
@@ -271,88 +377,13 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.onnx
 
-class BSConvU(nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size=3, stride=1, padding=1, bias=True):
-        super().__init__()
-        self.pw = nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=1, padding=0, bias=False)
-        self.dw = nn.Conv2d(out_channels, out_channels, kernel_size=kernel_size, stride=stride, 
-                            padding=padding, groups=out_channels, bias=bias)
-    def forward(self, x):
-        return self.dw(self.pw(x))
+# Import TinyCryNet_ESP32 from the repo (the SAME architecture we trained)
+sys.path.insert(0, REPO_DIR)
+from model.tiny_crynet_esp32 import TinyCryNet_ESP32
 
-class CCALayer(nn.Module):
-    def __init__(self, channel, reduction=8):
-        super().__init__()
-        self.avg_pool = nn.AdaptiveAvgPool2d(1)
-        self.conv_du = nn.Sequential(
-            nn.Conv2d(channel, max(8, channel // reduction), 1, padding=0, bias=True),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(max(8, channel // reduction), channel, 1, padding=0, bias=True),
-            nn.Sigmoid(),
-        )
-    def forward(self, x):
-        mean = x.mean(dim=(2, 3), keepdim=True)
-        var = ((x - mean) ** 2).mean(dim=(2, 3), keepdim=True)
-        contrast = torch.sqrt(var + 1e-8)
-        y = contrast + self.avg_pool(x)
-        return x * self.conv_du(y)
+print("=== STEP 7: Loading Trained Weights & Exporting ===")
 
-class CompactConvBlock(nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size=3, stride=1, padding=1):
-        super().__init__()
-        self.conv1 = BSConvU(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=padding)
-        self.bn1 = nn.BatchNorm2d(out_channels)
-        self.conv2 = BSConvU(out_channels, out_channels, kernel_size=kernel_size, stride=1, padding=padding)
-        self.bn2 = nn.BatchNorm2d(out_channels)
-    def forward(self, x, pool_size=(2, 2)):
-        x = F.relu(self.bn1(self.conv1(x)))
-        x = F.relu(self.bn2(self.conv2(x)))
-        if pool_size is not None:
-            x = F.avg_pool2d(x, kernel_size=pool_size)
-        return x
-
-class TinyCryNet_ESP32(nn.Module):
-    def __init__(self, in_channels=1, classes_num=2, temporal_type="gru"):
-        super().__init__()
-        self.temporal_type = temporal_type
-        self.block1 = CompactConvBlock(in_channels, 32)
-        self.block2 = CompactConvBlock(32, 64)
-        self.block3 = CompactConvBlock(64, 128)
-        self.block4 = CompactConvBlock(128, 128)
-        self.block5 = CompactConvBlock(128, 128)
-        self.fuse_conv = nn.Conv2d(128 * 3, 128, kernel_size=1)
-        self.cca = CCALayer(128)
-        if temporal_type == "gru":
-            self.temporal = nn.GRU(input_size=128, hidden_size=64, num_layers=1, batch_first=True, bidirectional=True)
-            fc_in = 128
-        else:
-            self.temporal = nn.Sequential(nn.Conv1d(128, 64, kernel_size=3, padding=1), nn.ReLU(), nn.AdaptiveAvgPool1d(1))
-            fc_in = 64
-        self.classifier = nn.Sequential(
-            nn.Linear(fc_in, 64), nn.ReLU(), nn.Dropout(0.3), nn.Linear(64, classes_num)
-        )
-    def forward(self, x):
-        if x.dim() == 3:
-            x = x.unsqueeze(1)
-        x1 = self.block1(x, pool_size=(2, 2))
-        x2 = self.block2(x1, pool_size=(2, 2))
-        x3 = self.block3(x2, pool_size=(2, 2))
-        x4 = self.block4(x3, pool_size=None)
-        x5 = self.block5(x4, pool_size=None)
-        fused = torch.cat([x3, x4, x5], dim=1)
-        fused = self.fuse_conv(fused)
-        fused = self.cca(fused)
-        f_pooled = torch.mean(fused, dim=3)
-        if self.temporal_type == "gru":
-            seq = f_pooled.permute(0, 2, 1)
-            gru_out, _ = self.temporal(seq)
-            t_pooled = torch.mean(gru_out, dim=1)
-        else:
-            t_pooled = self.temporal(f_pooled).squeeze(-1)
-        return self.classifier(t_pooled)
-
-tiny_model = TinyCryNet_ESP32(classes_num=2, temporal_type="gru")
-print("=== Searching Checkpoints for Export ===")
+tiny_model = TinyCryNet_ESP32(classes_num=2, activation="logsoftmax", temporal_type="conv1d")
 
 search_paths = [
     "/content/drive/MyDrive/TinyCryNet_Project/results/**/save/CKPT*",
@@ -375,35 +406,77 @@ if all_ckpts:
         state = torch.load(target_ckpt, map_location="cpu")
         if isinstance(state, dict):
             state = state.get("model_state_dict", state.get("state_dict", state))
-        tiny_model.load_state_dict(state, strict=False)
-        print("Loaded weights successfully.")
+        missing, unexpected = tiny_model.load_state_dict(state, strict=False)
+        if missing:
+            print(f"⚠️ Missing keys: {missing}")
+        if unexpected:
+            print(f"⚠️ Unexpected keys: {unexpected}")
+        print(f"✅ Loaded weights with {len(missing)} missing, {len(unexpected)} unexpected keys.")
+else:
+    print("❌ No checkpoints found! Model will have random weights.")
 
-# Export ONNX
 tiny_model.eval()
+params = sum(p.numel() for p in tiny_model.parameters())
+print(f"Model parameters: {params:,}")
+
+# Step 7a: Export ONNX
 dummy_input = torch.randn(1, 1, 81, 128)
 local_onnx = "tiny_crynet_2s.onnx"
 drive_onnx = "/content/drive/MyDrive/TinyCryNet_Project/tiny_crynet_2s.onnx"
 
 torch.onnx.export(
-    tiny_model,
-    dummy_input,
-    local_onnx,
-    export_params=True,
-    opset_version=18,
-    do_constant_folding=True,
-    input_names=["input"],
-    output_names=["output"],
+    tiny_model, dummy_input, local_onnx,
+    export_params=True, opset_version=18, do_constant_folding=True,
+    input_names=["input"], output_names=["output"],
     dynamic_axes={"input": {0: "batch_size"}, "output": {0: "batch_size"}}
 )
 shutil.copyfile(local_onnx, drive_onnx)
-print(f"✅ ONNX exported to Drive: {drive_onnx}")
+print(f"✅ ONNX exported: {local_onnx} ({os.path.getsize(local_onnx) / 1024:.1f} KB)")
 
-# Export C Header
+# Step 7b: Convert ONNX → TFLite
+tflite_output = "tiny_crynet_2s.tflite"
+drive_tflite = "/content/drive/MyDrive/TinyCryNet_Project/tiny_crynet_2s.tflite"
+
+try:
+    import subprocess
+    result = subprocess.run([
+        "python", "-m", "onnx2tf",
+        "-i", local_onnx, "-o", "tflite_export", "-osd",
+    ], capture_output=True, text=True, timeout=120)
+    print(result.stdout[-500:] if result.stdout else "")
+    tflite_candidates = glob.glob("tflite_export/**/*.tflite", recursive=True)
+    if tflite_candidates:
+        shutil.copyfile(tflite_candidates[0], tflite_output)
+        print(f"✅ TFLite model: {tflite_output} ({os.path.getsize(tflite_output) / 1024:.1f} KB)")
+    else:
+        raise FileNotFoundError("onnx2tf did not produce a .tflite file")
+except Exception as e:
+    print(f"⚠️ onnx2tf failed ({e}), falling back to tf.lite.TFLiteConverter...")
+    import onnx
+    from onnx_tf.backend import prepare
+    import tensorflow as tf
+    onnx_model = onnx.load(local_onnx)
+    tf_rep = prepare(onnx_model)
+    tf_rep.export_graph("tf_saved_model")
+    converter = tf.lite.TFLiteConverter.from_saved_model("tf_saved_model")
+    tflite_model = converter.convert()
+    with open(tflite_output, "wb") as f:
+        f.write(tflite_model)
+    print(f"✅ TFLite model (fallback): {tflite_output} ({len(tflite_model) / 1024:.1f} KB)")
+
+if os.path.exists(tflite_output):
+    shutil.copyfile(tflite_output, drive_tflite)
+
+# Step 7c: Export TFLite as C header
 def export_c_header(bin_path, header_path, name="model_data"):
     with open(bin_path, "rb") as f:
         data = f.read()
     with open(header_path, "w") as f:
-        f.write("// Auto-generated ESP32 Model Array\n#ifndef MODEL_DATA_H\n#define MODEL_DATA_H\n\n#include <stdint.h>\n\n")
+        f.write("// Auto-generated ESP32 TFLite Model Array\n")
+        f.write("// Architecture: TinyCryNet_ESP32 (conv1d temporal, FP32)\n")
+        f.write(f"// Input: [1, 1, 81, 128] | Output: [1, 2]\n")
+        f.write(f"// Size: {len(data):,} bytes\n\n")
+        f.write("#ifndef MODEL_DATA_H\n#define MODEL_DATA_H\n\n#include <stdint.h>\n\n")
         f.write(f"const unsigned int {name}_len = {len(data)};\n")
         f.write(f"const uint8_t {name}[] __attribute__((aligned(16))) = {{\n  ")
         for i, b in enumerate(data):
@@ -411,11 +484,21 @@ def export_c_header(bin_path, header_path, name="model_data"):
             if (i + 1) % 12 == 0:
                 f.write("\n  ")
         f.write("\n};\n\n#endif // MODEL_DATA_H\n")
-    print(f"✅ Generated C Header: {header_path} ({len(data)} bytes)")
+    print(f"✅ Generated C Header: {header_path} ({len(data):,} bytes)")
 
 local_header = "model_data.h"
 drive_header = "/content/drive/MyDrive/TinyCryNet_Project/model_data.h"
-export_c_header(local_onnx, local_header)
+if os.path.exists(tflite_output):
+    export_c_header(tflite_output, local_header)
+    print(f"✅ C Header contains TFLite binary (ready for ESP32-S3 TFLite Micro)")
+else:
+    export_c_header(local_onnx, local_header)
+    print(f"⚠️ C Header contains ONNX binary (manual TFLite conversion needed)")
 shutil.copyfile(local_header, drive_header)
-print(f"✅ C Header exported to Drive: {drive_header}")
-print("\n🎉 Training and deployment generation completed safely!")
+
+print(f"\n📊 Export Summary:")
+print(f"   ONNX:   {os.path.getsize(local_onnx) / 1024:.1f} KB")
+if os.path.exists(tflite_output):
+    print(f"   TFLite: {os.path.getsize(tflite_output) / 1024:.1f} KB")
+print(f"   C Hdr:  {os.path.getsize(local_header) / 1024:.1f} KB")
+print("\n🎉 Training and export complete! Copy model_data.h to firmware/central_hub_s3/ to flash.")

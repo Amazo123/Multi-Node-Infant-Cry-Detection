@@ -1,6 +1,11 @@
 /**
  * @file dsp_mel_extractor.cpp
- * @brief Fast Log-Mel Spectrogram extraction implementation optimized for ESP32-S3 SIMD instructions.
+ * @brief Fast Log-Mel Spectrogram extraction optimized for ESP32-S3.
+ * 
+ * OPTIMIZATIONS vs original:
+ * - Sparse mel filterbank (only stores non-zero weights, saves ~120KB RAM)
+ * - PSRAM allocation for large buffers (preserves internal SRAM for stack/BLE/WiFi)
+ * - Optimized inner loop using start/end bin indices to skip zero-weight bins
  */
 
 #include "dsp_mel_extractor.h"
@@ -24,7 +29,8 @@ DSPMelExtractor::DSPMelExtractor()
       _fft_input(nullptr),
       _fft_complex(nullptr),
       _power_spectrum(nullptr),
-      _mel_weights(nullptr) {}
+      _mel_weights(nullptr),
+      _mel_weight_count(0) {}
 
 DSPMelExtractor::~DSPMelExtractor() {
     if (_hann_window) free(_hann_window);
@@ -42,14 +48,16 @@ bool DSPMelExtractor::begin() {
         return false;
     }
 
-    // 2. Allocate buffers
+    // 2. Allocate processing buffers — use PSRAM where possible to save internal SRAM
+    // Hann window is small enough for internal RAM (2KB)
     _hann_window    = (float*)malloc(DSP_FFT_SIZE * sizeof(float));
-    _fft_input      = (float*)malloc(DSP_FFT_SIZE * sizeof(float));
-    _fft_complex    = (float*)malloc(DSP_FFT_SIZE * 2 * sizeof(float)); // Re & Im pairs
+    // FFT complex buffer (4KB) — used every frame, benefits from fast internal RAM
+    _fft_complex    = (float*)malloc(DSP_FFT_SIZE * 2 * sizeof(float));
+    // Power spectrum (1KB)
     _power_spectrum = (float*)malloc(((DSP_FFT_SIZE / 2) + 1) * sizeof(float));
 
-    if (!_hann_window || !_fft_input || !_fft_complex || !_power_spectrum) {
-        Serial.println("❌ Error allocating DSP memory buffers!");
+    if (!_hann_window || !_fft_complex || !_power_spectrum) {
+        Serial.println("❌ Error allocating DSP core buffers!");
         return false;
     }
 
@@ -58,33 +66,55 @@ bool DSPMelExtractor::begin() {
         _hann_window[i] = 0.5f * (1.0f - cosf(2.0f * PI_F * (float)i / (float)(DSP_FFT_SIZE - 1)));
     }
 
-    // 4. Precompute Triangular Mel Filterbank Matrix
-    _init_mel_filterbanks();
+    // 4. Precompute Sparse Mel Filterbank (only non-zero weights)
+    _init_mel_filterbanks_sparse();
 
-    Serial.println("✅ DSP Mel Extractor initialized (128 Bands, 512 FFT, 400 Hop, 81 Frames).");
+    Serial.printf("✅ DSP Mel Extractor initialized (%d Bands, %d FFT, %d Hop, %d Frames)\n",
+                  DSP_MEL_BINS, DSP_FFT_SIZE, DSP_HOP_SIZE, DSP_TIME_FRAMES);
+    Serial.printf("   Sparse filterbank: %u non-zero weights (saved ~%u KB vs dense)\n",
+                  _mel_weight_count,
+                  (DSP_MEL_BINS * ((DSP_FFT_SIZE / 2) + 1) * sizeof(float) - _mel_weight_count * sizeof(float)) / 1024);
     return true;
 }
 
-void DSPMelExtractor::_init_mel_filterbanks() {
+void DSPMelExtractor::_init_mel_filterbanks_sparse() {
     float min_mel = hz_to_mel(0.0f);
     float max_mel = hz_to_mel(DSP_SAMPLE_RATE / 2.0f); // 8000 Hz Nyquist
     float mel_step = (max_mel - min_mel) / (float)(DSP_MEL_BINS + 1);
 
-    // Compute center FFT bin index for each mel point
     float bin_freq_hz = (float)DSP_SAMPLE_RATE / (float)DSP_FFT_SIZE; // 31.25 Hz per bin
     int num_spec_bins = (DSP_FFT_SIZE / 2) + 1; // 257 bins
 
-    // Estimate total non-zero weights
-    _mel_weights = (float*)malloc(DSP_MEL_BINS * num_spec_bins * sizeof(float));
-    memset(_mel_weights, 0, DSP_MEL_BINS * num_spec_bins * sizeof(float));
+    // First pass: count non-zero weights to allocate exact memory
+    _mel_weight_count = 0;
+    for (int m = 1; m <= DSP_MEL_BINS; m++) {
+        float f_m_minus = mel_to_hz(min_mel + (m - 1) * mel_step);
+        float f_m_plus  = mel_to_hz(min_mel + (m + 1) * mel_step);
+        int k_minus = (int)floorf(f_m_minus / bin_freq_hz);
+        int k_plus  = (int)ceilf(f_m_plus / bin_freq_hz);
+        if (k_minus < 0) k_minus = 0;
+        if (k_plus >= num_spec_bins) k_plus = num_spec_bins - 1;
+        _mel_weight_count += (k_plus - k_minus + 1);
+    }
 
+    // Allocate sparse weight array in PSRAM (typically ~3-5KB vs ~131KB dense)
+    _mel_weights = (float*)ps_malloc(_mel_weight_count * sizeof(float));
+    if (!_mel_weights) {
+        _mel_weights = (float*)malloc(_mel_weight_count * sizeof(float));
+    }
+    if (!_mel_weights) {
+        Serial.println("❌ Error allocating mel filterbank weights!");
+        return;
+    }
+
+    // Second pass: compute and store weights
+    uint32_t weight_idx = 0;
     for (int m = 1; m <= DSP_MEL_BINS; m++) {
         float f_m_minus = mel_to_hz(min_mel + (m - 1) * mel_step);
         float f_m       = mel_to_hz(min_mel + m * mel_step);
         float f_m_plus  = mel_to_hz(min_mel + (m + 1) * mel_step);
 
         int k_minus = (int)floorf(f_m_minus / bin_freq_hz);
-        int k_center = (int)roundf(f_m / bin_freq_hz);
         int k_plus  = (int)ceilf(f_m_plus / bin_freq_hz);
 
         if (k_minus < 0) k_minus = 0;
@@ -92,7 +122,10 @@ void DSPMelExtractor::_init_mel_filterbanks() {
 
         _mel_start_bin[m - 1] = k_minus;
         _mel_end_bin[m - 1]   = k_plus;
+        _mel_weight_offset[m - 1] = weight_idx;
 
+        // Slaney-normalized triangular filter
+        float norm_factor = 2.0f / (f_m_plus - f_m_minus + 1e-8f);
         for (int k = k_minus; k <= k_plus; k++) {
             float freq = k * bin_freq_hz;
             float weight = 0.0f;
@@ -101,9 +134,7 @@ void DSPMelExtractor::_init_mel_filterbanks() {
             } else if (freq > f_m && freq <= f_m_plus) {
                 weight = (f_m_plus - freq) / (f_m_plus - f_m + 1e-8f);
             }
-            // Slaney area normalization
-            float norm_factor = 2.0f / (f_m_plus - f_m_minus + 1e-8f);
-            _mel_weights[(m - 1) * num_spec_bins + k] = weight * norm_factor;
+            _mel_weights[weight_idx++] = weight * norm_factor;
         }
     }
 }
@@ -112,7 +143,7 @@ void DSPMelExtractor::compute_log_mel(const float* pcm_in, float* out_features) 
     if (!pcm_in || !out_features) return;
 
     int num_spec_bins = (DSP_FFT_SIZE / 2) + 1; // 257 bins
-    int max_signal_samples = 32000;
+    int max_signal_samples = DSP_SAMPLE_RATE * 2; // 32,000
 
     // Process exactly 81 time frames
     for (int t = 0; t < DSP_TIME_FRAMES; t++) {
@@ -126,7 +157,7 @@ void DSPMelExtractor::compute_log_mel(const float* pcm_in, float* out_features) 
             _fft_complex[i * 2 + 1] = 0.0f;                  // Imaginary part
         }
 
-        // 2. Compute Radix-2 Complex Fast Fourier Transform using ESP-DSP
+        // 2. Compute Radix-2 Complex FFT using ESP-DSP hardware acceleration
         dsps_fft2r_fc32(_fft_complex, DSP_FFT_SIZE);
         dsps_bit_rev2r_fc32(_fft_complex, DSP_FFT_SIZE);
 
@@ -137,16 +168,17 @@ void DSPMelExtractor::compute_log_mel(const float* pcm_in, float* out_features) 
             _power_spectrum[k] = (re * re + im * im);
         }
 
-        // 4. Dot Product with Triangular Mel Filterbanks
+        // 4. Sparse Dot Product with Triangular Mel Filterbanks
         int out_frame_offset = t * DSP_MEL_BINS;
         for (int m = 0; m < DSP_MEL_BINS; m++) {
             float mel_energy = 0.0f;
             int start_k = _mel_start_bin[m];
             int end_k   = _mel_end_bin[m];
-            const float* w = &_mel_weights[m * num_spec_bins];
+            uint32_t w_offset = _mel_weight_offset[m];
 
+            // Only iterate over bins with non-zero weights (sparse)
             for (int k = start_k; k <= end_k; k++) {
-                mel_energy += _power_spectrum[k] * w[k];
+                mel_energy += _power_spectrum[k] * _mel_weights[w_offset + (k - start_k)];
             }
 
             // 5. Convert to Log Decibels (Power to dB with top_db=80 clamp)

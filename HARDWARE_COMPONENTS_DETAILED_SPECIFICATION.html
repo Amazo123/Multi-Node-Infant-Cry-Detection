@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Hardware Components Detailed Specification - Multi-Node Infant Cry Detection System</title>
+<style>
+  @page {
+    size: A4 portrait;
+    margin: 10mm 12mm 12mm 12mm;
+    @bottom-right {
+      content: counter(page) " of " counter(pages);
+      font-size: 8pt;
+      color: #64748b;
+    }
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+    color: #1e293b;
+    background: #ffffff;
+    font-size: 8.5pt;
+    line-height: 1.35;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .header-card {
+    background: linear-gradient(135deg, #0f2b5c 0%, #1e40af 100%);
+    color: #ffffff;
+    padding: 14px 18px;
+    border-radius: 6px;
+    margin-bottom: 12px;
+  }
+
+  .header-card h1 {
+    font-size: 15pt;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    margin-bottom: 3px;
+  }
+
+  .header-card .subtitle {
+    font-size: 9.5pt;
+    color: #93c5fd;
+    font-weight: 500;
+    margin-bottom: 6px;
+  }
+
+  .header-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 8pt;
+    color: #e2e8f0;
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+    padding-top: 5px;
+  }
+
+  .quick-callout {
+    background: #f0fdf4;
+    border: 1px solid #86efac;
+    border-left: 4px solid #16a34a;
+    padding: 8px 12px;
+    border-radius: 4px;
+    margin-bottom: 12px;
+    font-size: 8.5pt;
+  }
+
+  .quick-callout strong {
+    color: #166534;
+  }
+
+  .section-title {
+    font-size: 11pt;
+    font-weight: 700;
+    color: #0f2b5c;
+    border-bottom: 2px solid #2563eb;
+    padding-bottom: 3px;
+    margin-top: 14px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .section-badge {
+    font-size: 7.5pt;
+    font-weight: 600;
+    background: #dbeafe;
+    color: #1e40af;
+    padding: 2px 8px;
+    border-radius: 12px;
+    text-transform: uppercase;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 12px;
+    font-size: 8pt;
+    page-break-inside: auto;
+  }
+
+  tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+
+  th {
+    background: #1e3a8a;
+    color: #ffffff;
+    font-weight: 600;
+    text-align: left;
+    padding: 5px 6px;
+    font-size: 8pt;
+  }
+
+  td {
+    padding: 4px 6px;
+    border-bottom: 1px solid #e2e8f0;
+    vertical-align: top;
+  }
+
+  tr:nth-child(even) td {
+    background: #f8fafc;
+  }
+
+  .code-cell {
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-weight: 600;
+    color: #0369a1;
+  }
+
+  .tag-pin {
+    display: inline-block;
+    background: #f1f5f9;
+    border: 1px solid #cbd5e1;
+    color: #334155;
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-family: 'Consolas', monospace;
+    font-size: 7.5pt;
+    margin: 1px;
+  }
+
+  .badge-spec {
+    display: inline-block;
+    background: #eff6ff;
+    color: #1d4ed8;
+    border: 1px solid #bfdbfe;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-weight: 600;
+    font-size: 7.5pt;
+  }
+
+  .swatch-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    margin-top: 2px;
+  }
+
+  .swatch {
+    display: inline-block;
+    padding: 1px 5px;
+    border-radius: 2px;
+    font-size: 7pt;
+    font-weight: 700;
+    color: #ffffff;
+    text-shadow: 0 1px 1px rgba(0,0,0,0.4);
+  }
+
+  .swatch-brown  { background: #8B4513; }
+  .swatch-black  { background: #1a1a1a; }
+  .swatch-yellow { background: #EAB308; color: #1e293b; text-shadow: none; }
+  .swatch-gold   { background: #D4AF37; color: #1e293b; text-shadow: none; }
+  .swatch-orange { background: #EA580C; }
+  .swatch-red    { background: #DC2626; }
+  .swatch-blue   { background: #2563EB; }
+  .swatch-green  { background: #16A34A; }
+  .swatch-silver { background: #94A3B8; color: #1e293b; text-shadow: none; }
+
+  .warning-box {
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    border-left: 4px solid #f59e0b;
+    padding: 6px 10px;
+    border-radius: 4px;
+    margin: 8px 0;
+    font-size: 8pt;
+    color: #92400e;
+  }
+
+  .footer-sig {
+    margin-top: 18px;
+    padding-top: 10px;
+    border-top: 1px dashed #cbd5e1;
+    display: flex;
+    justify-content: space-between;
+    font-size: 8pt;
+    color: #64748b;
+  }
+
+  .page-break {
+    page-break-before: always;
+  }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header-card">
+  <h1>MULTI-NODE INFANT CRY DETECTION SYSTEM</h1>
+  <div class="subtitle">Complete Master Hardware Component Specification & Engineering Datasheet</div>
+  <div class="header-meta">
+    <span><strong>Author:</strong> Amazing Ayomikun Adelowo (22/05/04/0029)</span>
+    <span><strong>Institution:</strong> University of Maiduguri</span>
+    <span><strong>Target:</strong> 3× Cot Nodes + 1× Central Hub + 1× Caregiver Wearable</span>
+  </div>
+</div>
+
+<!-- Clarification Callout for Capacitor & Resistor Codes -->
+<div class="quick-callout">
+  <strong>Capacitor Code Clarification:</strong> 
+  A <strong>100 nF</strong> (0.1 µF) capacitor is stamped <strong>104</strong> (10 × 10<sup>4</sup> pF = 100,000 pF = 100 nF = 0.1 µF). 
+  A capacitor stamped <strong>103</strong> is only 10 nF (0.01 µF), which is 10 times too small. 
+  Always use <strong>104</strong> for power decoupling and ADC noise filtering.
+</div>
+
+<!-- SUBSYSTEM A -->
+<div class="section-title">
+  <span>1. Subsystem A: Cot Sensing Listening Nodes (3 Cot Units Total)</span>
+  <span class="section-badge">Quantity: 3 Identical Nodes</span>
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th style="width: 5%;">ID</th>
+      <th style="width: 20%;">Component & Make</th>
+      <th style="width: 15%;">Manufacturer / Part No.</th>
+      <th style="width: 25%;">Electrical Ratings & Specifications</th>
+      <th style="width: 20%;">Marking & Package</th>
+      <th style="width: 15%;">Circuit Pinout / Role</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td class="code-cell">A1</td>
+      <td><strong>Core MCU Node</strong><br>ESP32-C3 SuperMini</td>
+      <td>Espressif Systems<br><em>ESP32-C3FH4 / FN4</em></td>
+      <td>32-bit RISC-V @ 160 MHz, 400 KB SRAM, 4 MB embedded Flash, 2.4 GHz Wi-Fi / ESP-NOW protocol</td>
+      <td>Castellated 16-pin dual row (22.5 × 18 mm), Type-C USB</td>
+      <td>Audio DMA capture & ESP-NOW telemetry sender</td>
+    </tr>
+    <tr>
+      <td class="code-cell">A2</td>
+      <td><strong>Digital MEMS Microphone</strong><br>INMP441 I2S Breakout</td>
+      <td>TDK InvenSense<br><em>INMP441ACEZ-R0</em></td>
+      <td>24-bit I2S digital output, 61 dBA SNR, -26 dBFS sensitivity, 60 Hz – 15 kHz, 1.4 mA current draw</td>
+      <td>6-pin breakout board with bottom acoustic port</td>
+      <td>
+        <span class="tag-pin">SCK: IO5</span>
+        <span class="tag-pin">WS: IO6</span>
+        <span class="tag-pin">SD: IO7</span>
+        <span class="tag-pin">L/R: GND</span>
+        <span class="tag-pin">VDD: 3.3V</span>
+      </td>
+    </tr>
+    <tr>
+      <td class="code-cell">A3</td>
+      <td><strong>Battery Voltage Divider Resistors</strong></td>
+      <td>Generic Metal Film<br><em>MF0204 / 0.25W 1%</em></td>
+      <td>100 kΩ resistance, 0.25W (1/4W) rating, ±1% precision tolerance. Form 2:1 ratio for 1S Li-Po</td>
+      <td>
+        Axial through-hole (4-band):<br>
+        <div class="swatch-group">
+          <span class="swatch swatch-brown">BRN</span>
+          <span class="swatch swatch-black">BLK</span>
+          <span class="swatch swatch-yellow">YEL</span>
+          <span class="swatch swatch-gold">GLD</span>
+        </div>
+      </td>
+      <td>VBAT → 100 kΩ → <span class="tag-pin">GPIO 1</span> → 100 kΩ → GND (Vadc = Vbat / 2)</td>
+    </tr>
+    <tr>
+      <td class="code-cell">A4</td>
+      <td><strong>ADC Noise Filter Capacitor</strong></td>
+      <td>Generic MLCC / Ceramic Disc<br><em>50V X7R / Y5V</em></td>
+      <td>100 nF (0.1 µF), 50V rated, ±10% tolerance. Low-pass filter for stable ADC readings</td>
+      <td>
+        Yellow radial bead<br>
+        Stamp: <span class="badge-spec">104</span> (or 104K / 104Z)
+      </td>
+      <td>In parallel with lower 100 kΩ resistor between <span class="tag-pin">GPIO 1</span> and <span class="tag-pin">GND</span></td>
+    </tr>
+    <tr>
+      <td class="code-cell">A5</td>
+      <td><strong>Mic Decoupling Capacitor</strong></td>
+      <td>Generic Ceramic Disc<br><em>50V Ceramic</em></td>
+      <td>100 nF (0.1 µF), 50V rated. Absorbs digital switching noise from microphone power</td>
+      <td>
+        Yellow/orange disc<br>
+        Stamp: <span class="badge-spec">104</span>
+      </td>
+      <td>Directly across INMP441 <span class="tag-pin">VDD (3.3V)</span> and <span class="tag-pin">GND</span></td>
+    </tr>
+    <tr>
+      <td class="code-cell">A6</td>
+      <td><strong>Battery Status LED</strong></td>
+      <td>Generic 3mm or 5mm<br><em>Diffused Red</em></td>
+      <td>Vf = 1.9V – 2.1V, If = 10 mA, 625 nm. High: Solid, Med: Slow Blink, Low: Fast Blink</td>
+      <td>Longer lead = Anode (+)<br>Flat rim = Cathode (−)</td>
+      <td><span class="tag-pin">GPIO 4</span> → 330 Ω → Anode → Cathode → GND (Active-HIGH)</td>
+    </tr>
+    <tr>
+      <td class="code-cell">A7</td>
+      <td><strong>ESP-NOW Link Status LED</strong></td>
+      <td>Generic 3mm or 5mm<br><em>Diffused Blue</em></td>
+      <td>Vf = 3.0V – 3.2V, If = 10 mA, 465 nm. Solid: Connected to Hub, Blink: Searching</td>
+      <td>Longer lead = Anode (+)<br>Flat rim = Cathode (−)</td>
+      <td>3.3V → 330 Ω → Anode → Cathode → <span class="tag-pin">GPIO 9</span> (Active-LOW)</td>
+    </tr>
+    <tr>
+      <td class="code-cell">A8</td>
+      <td><strong>LED Current-Limiting Resistors</strong></td>
+      <td>Generic Carbon / Metal Film<br><em>0.25W 5%</em></td>
+      <td>330 Ω resistance, 0.25W rating, ±5% tolerance. Limits LED current safely to ~4–8 mA</td>
+      <td>
+        Axial through-hole (4-band):<br>
+        <div class="swatch-group">
+          <span class="swatch swatch-orange">ORG</span>
+          <span class="swatch swatch-orange">ORG</span>
+          <span class="swatch swatch-brown">BRN</span>
+          <span class="swatch swatch-gold">GLD</span>
+        </div>
+      </td>
+      <td>In series with Red LED (GPIO 4) and Blue LED (GPIO 9)</td>
+    </tr>
+    <tr>
+      <td class="code-cell">A9</td>
+      <td><strong>Li-Ion Charging Module</strong></td>
+      <td>TP4056 USB-C Board<br><em>TP4056 + DW01A + 8205A</em></td>
+      <td>1S 3.7V constant-current/constant-voltage charger, 1A charge rate, 2.5V cut-off protection</td>
+      <td>Red/Blue SMD status LEDs, Type-C input socket</td>
+      <td>BAT+ / BAT− to Li-Po cell; OUT+ / OUT− to power circuit</td>
+    </tr>
+    <tr>
+      <td class="code-cell">A10</td>
+      <td><strong>DC-DC Step-Up Booster</strong></td>
+      <td>MT3608 Micro Boost<br><em>MT3608 2A</em></td>
+      <td>Input 2.8V – 4.2V, Output adjusted to 5.0V, 2A peak, 1.2 MHz switching frequency</td>
+      <td>Solder pad terminals with multiturn trimpot</td>
+      <td>Steps Li-Po 3.7V up to 5.0V for ESP32 5V/VBUS pin</td>
+    </tr>
+    <tr>
+      <td class="code-cell">A11</td>
+      <td><strong>RF Power Buffer Capacitor</strong></td>
+      <td>Radial Aluminum Electrolytic<br><em>47 µF – 100 µF, 25V</em></td>
+      <td>47 µF to 100 µF, 25V rating, 105°C rated. Absorbs sudden 120 mA ESP-NOW RF transmit spikes</td>
+      <td>Radial can; light vertical stripe marks Negative (−) lead</td>
+      <td>Across 5V boost converter output rail (5V to GND)</td>
+    </tr>
+    <tr>
+      <td class="code-cell">A12</td>
+      <td><strong>1S Li-Po Battery Cell</strong></td>
+      <td>Rechargeable Li-Po Pouch<br><em>Model 103450 / 803450</em></td>
+      <td>1S 3.7V nominal, 2000 mAh capacity, integrated PCM protection board against short-circuits</td>
+      <td>Flat pouch with pre-crimped red/black lead wires</td>
+      <td>Connects to TP4056 B+ and B− terminals</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="warning-box">
+  <strong>Cot Node Strapping Pin Note:</strong> GPIO 9 controls the ESP32-C3 boot mode. 
+  Our Blue LED design (3.3V → 330 Ω → Anode → Cathode → GPIO 9) naturally pulls the pin HIGH during power-up, ensuring normal SPI flash boot. 
+  Do not short GPIO 9 directly to ground on power-on or the chip will enter ROM download mode.
+</div>
+
+<!-- PAGE BREAK FOR CLEAN PRINTING -->
+<div class="page-break"></div>
+
+<!-- SUBSYSTEM B -->
+<div class="section-title">
+  <span>2. Subsystem B: Central Intelligence Hub (1 Unit)</span>
+  <span class="section-badge">Quantity: 1 Central Unit</span>
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th style="width: 5%;">ID</th>
+      <th style="width: 20%;">Component & Make</th>
+      <th style="width: 15%;">Manufacturer / Part No.</th>
+      <th style="width: 25%;">Electrical Ratings & Specifications</th>
+      <th style="width: 20%;">Marking & Package</th>
+      <th style="width: 15%;">Circuit Pinout / Role</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td class="code-cell">B1</td>
+      <td><strong>Central Edge-AI Hub MCU</strong></td>
+      <td>Espressif Systems<br><em>ESP32-S3-DevKitC-1 N16R8</em></td>
+      <td>Dual-Core Xtensa LX7 @ 240 MHz, 512 KB SRAM, 16 MB Flash, <strong>8 MB Octal PSRAM</strong>. Vector DSP instructions for Log-Mel spectrograms & TinyCryNet inference</td>
+      <td>44-pin dual-row dev board with dual Type-C ports</td>
+      <td>
+        ESP-NOW multi-cot receiver, audio reassembly in PSRAM, TFLite Micro inference, BLE alerting server
+      </td>
+    </tr>
+    <tr>
+      <td class="code-cell">B2</td>
+      <td><strong>2.4" SPI Color TFT Display</strong></td>
+      <td>ILI9341 LCD Module<br><em>ILI9341 240×320 SPI</em></td>
+      <td>2.4-inch 240×320 pixel, 65k RGB colors, SPI interface (SPI2 hardware bus), onboard 3.3V LDO regulator</td>
+      <td>14-pin single-row header (2.54 mm pitch)</td>
+      <td>
+        <span class="tag-pin">CS: IO10</span>
+        <span class="tag-pin">MOSI: IO11</span>
+        <span class="tag-pin">SCK: IO12</span>
+        <span class="tag-pin">DC: IO13</span>
+        <span class="tag-pin">RST: IO14</span>
+        <span class="tag-pin">VCC: 5V</span>
+      </td>
+    </tr>
+    <tr>
+      <td class="code-cell">B3</td>
+      <td><strong>Backlight Ballast Resistor</strong></td>
+      <td>Metal Film Resistor<br><em>0.25W 5%</em></td>
+      <td>100 Ω resistance, 0.25W rating. Limits display backlight current to ~20 mA</td>
+      <td>
+        Axial through-hole (4-band):<br>
+        <div class="swatch-group">
+          <span class="swatch swatch-brown">BRN</span>
+          <span class="swatch swatch-black">BLK</span>
+          <span class="swatch swatch-brown">BRN</span>
+          <span class="swatch swatch-gold">GLD</span>
+        </div>
+      </td>
+      <td>Placed between 3.3V rail and TFT <span class="tag-pin">LED/BLK</span> pin</td>
+    </tr>
+    <tr>
+      <td class="code-cell">B4</td>
+      <td><strong>DC-DC Step-Up Booster</strong></td>
+      <td>MT3608 Micro Boost<br><em>MT3608 2A</em></td>
+      <td>Input 3.0V – 4.2V, Output adjusted to 5.0V, 2A peak current capability</td>
+      <td>Solder terminals with multiturn trimpot</td>
+      <td>Powers S3 5V/VIN pin and TFT display VCC rail</td>
+    </tr>
+    <tr>
+      <td class="code-cell">B5</td>
+      <td><strong>High-Capacity Li-Po / Li-Ion</strong></td>
+      <td>Rechargeable Lithium<br><em>18650 or 3.7V Pouch</em></td>
+      <td>1S 3.7V nominal, 3000 mAh capacity, continuous current rating > 2A with PCM</td>
+      <td>Single-cell battery with 2-pin JST-PH lead</td>
+      <td>Primary power reservoir for central hub</td>
+    </tr>
+    <tr>
+      <td class="code-cell">B6</td>
+      <td><strong>Bulk Decoupling Capacitor</strong></td>
+      <td>Aluminum Electrolytic<br><em>100 µF, 25V</em></td>
+      <td>100 µF capacitance, 25V rating, low ESR. Stabilizes 5V boost converter output</td>
+      <td>Radial can; stripe marks Negative (−) lead</td>
+      <td>Placed across 5V boost converter output rail</td>
+    </tr>
+    <tr>
+      <td class="code-cell">B7</td>
+      <td><strong>High-Freq Decoupling Cap</strong></td>
+      <td>Ceramic Disc / MLCC<br><em>50V Ceramic</em></td>
+      <td>100 nF (0.1 µF), 50V rated. Suppresses high-frequency ripple on MCU power bus</td>
+      <td>
+        Yellow disc<br>
+        Stamp: <span class="badge-spec">104</span>
+      </td>
+      <td>Placed across ESP32-S3 3.3V and GND pins</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="warning-box">
+  <strong>CRITICAL ESP32-S3 OCTAL PSRAM PROTECTION:</strong> 
+  On the ESP32-S3-WROOM-1 N16R8, <strong>GPIO 33, 34, 35, 36, and 37 are internally dedicated to the 8 MB Octal PSRAM bus</strong>. 
+  Wiring anything to these pins will crash the flash/PSRAM cache memory controller. 
+  Our TFT display pinout strictly uses <strong>GPIO 10, 11, 12, 13, and 14</strong>, completely protecting the PSRAM bus.
+</div>
+
+<!-- SUBSYSTEM C -->
+<div class="section-title">
+  <span>3. Subsystem C: Caregiver Wearable Alert Wristband (1 Unit)</span>
+  <span class="section-badge">Quantity: 1 Wearable Unit</span>
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th style="width: 5%;">ID</th>
+      <th style="width: 20%;">Component & Make</th>
+      <th style="width: 15%;">Manufacturer / Part No.</th>
+      <th style="width: 25%;">Electrical Ratings & Specifications</th>
+      <th style="width: 20%;">Marking & Package</th>
+      <th style="width: 15%;">Circuit Pinout / Role</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td class="code-cell">C1</td>
+      <td><strong>Wearable MCU Core</strong><br>ESP32-C3 SuperMini</td>
+      <td>Espressif Systems<br><em>ESP32-C3FH4</em></td>
+      <td>Single-core 32-bit RISC-V @ 160 MHz, 4 MB Flash, BLE 5 Client mode for GATT cry notifications</td>
+      <td>Ultra-compact castellated 16-pin board (22.5 × 18 mm)</td>
+      <td>Receives BLE GATT alerts from S3 hub, drives OLED & haptic motor</td>
+    </tr>
+    <tr>
+      <td class="code-cell">C2</td>
+      <td><strong>0.96" Monochrome OLED</strong></td>
+      <td>Solomon Systech SSD1306<br><em>0.96" I2C OLED (0x3C)</em></td>
+      <td>128×64 pixels, I2C interface, 3.3V operating voltage, ultra-low operating current (~15 mA)</td>
+      <td>4-pin header (VCC, GND, SCL, SDA)</td>
+      <td>
+        <span class="tag-pin">SDA: IO4</span>
+        <span class="tag-pin">SCL: IO5</span>
+        <span class="tag-pin">VCC: 3.3V</span>
+        <span class="tag-pin">GND: GND</span>
+      </td>
+    </tr>
+    <tr>
+      <td class="code-cell">C3</td>
+      <td><strong>Haptic Motor Driver MOSFET</strong></td>
+      <td>Alpha & Omega / Inf. (IR)<br><em>AO3400A or IRLML2502TR</em></td>
+      <td>Logic-Level N-Channel MOSFET: Vds = 30V, Id = 4.2A – 5.7A, Vgs(th) ≤ 1.2V, Rds(on) < 35 mΩ. Fully turns on at 3.3V logic!</td>
+      <td>SOT-23 package (or pre-mounted adapter breakout)</td>
+      <td>
+        <span class="tag-pin">Pin 1: Gate (IO3 via 100 Ω)</span><br>
+        <span class="tag-pin">Pin 2: Source (GND)</span><br>
+        <span class="tag-pin">Pin 3: Drain (Motor −)</span>
+      </td>
+    </tr>
+    <tr>
+      <td class="code-cell">C4</td>
+      <td><strong>Silent Haptic ERM Motor</strong></td>
+      <td>Coin Vibration Motor<br><em>Model 1027 / 1030</em></td>
+      <td>10 mm flat coin ERM motor, 2.5V – 3.7V DC, nominal current 60 mA – 80 mA, ~10,000 RPM vibration frequency</td>
+      <td>Self-adhesive coin disc with Red (+) and Blue/Black (−) leads</td>
+      <td>Red lead to 3.3V rail; Blue/Black lead to MOSFET Drain</td>
+    </tr>
+    <tr>
+      <td class="code-cell">C5</td>
+      <td><strong>Flyback Snubber Diode</strong></td>
+      <td>Diodes Inc. / Vishay<br><em>1N5819 Schottky</em></td>
+      <td>Schottky Barrier Diode: Vrrm = 40V, If = 1.0A, low Vf ≈ 0.35V, ultra-fast recovery (&lt; 10 ns). Snubs motor inductive kickback!</td>
+      <td>DO-41 axial glass/plastic case.<br><strong>Silver Band = Cathode (−)</strong></td>
+      <td>Directly across motor leads:<br><strong>Silver Band (Cathode) → 3.3V</strong><br>Black Body (Anode) → MOSFET Drain</td>
+    </tr>
+    <tr>
+      <td class="code-cell">C6</td>
+      <td><strong>Gate Ringing Resistor</strong></td>
+      <td>Carbon / Metal Film<br><em>0.25W 5%</em></td>
+      <td>100 Ω resistance, 0.25W rating. Suppresses high-frequency ringing and gate current spikes</td>
+      <td>
+        Axial through-hole (4-band):<br>
+        <div class="swatch-group">
+          <span class="swatch swatch-brown">BRN</span>
+          <span class="swatch swatch-black">BLK</span>
+          <span class="swatch swatch-brown">BRN</span>
+          <span class="swatch swatch-gold">GLD</span>
+        </div>
+      </td>
+      <td>Between <span class="tag-pin">GPIO 3</span> and MOSFET Gate terminal</td>
+    </tr>
+    <tr>
+      <td class="code-cell">C7</td>
+      <td><strong>Gate Pulldown Resistor</strong></td>
+      <td>Carbon / Metal Film<br><em>0.25W 5%</em></td>
+      <td>10 kΩ resistance, 0.25W rating. Guarantees motor stays OFF during boot and floating states</td>
+      <td>
+        Axial through-hole (4-band):<br>
+        <div class="swatch-group">
+          <span class="swatch swatch-brown">BRN</span>
+          <span class="swatch swatch-black">BLK</span>
+          <span class="swatch swatch-orange">ORG</span>
+          <span class="swatch swatch-gold">GLD</span>
+        </div>
+      </td>
+      <td>Between MOSFET Gate terminal and <span class="tag-pin">GND</span></td>
+    </tr>
+    <tr>
+      <td class="code-cell">C8</td>
+      <td><strong>Compact Wearable Li-Po</strong></td>
+      <td>Li-Po Pouch Cell<br><em>Model 502030 / 602030</em></td>
+      <td>1S 3.7V nominal, 500 mAh capacity, ultra-lightweight pouch (~10 g, 30 × 20 × 5 mm)</td>
+      <td>Pouch with pre-crimped leads and micro-PCM</td>
+      <td>Power source for wearable wristband enclosure</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- PAGE BREAK FOR CLEAN PRINTING -->
+<div class="page-break"></div>
+
+<!-- SUBSYSTEM D -->
+<div class="section-title">
+  <span>4. Subsystem D: Bench Prototyping Hardware, Interconnects & Consumables</span>
+  <span class="section-badge">Workshop Essentials</span>
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th style="width: 5%;">ID</th>
+      <th style="width: 25%;">Item & Description</th>
+      <th style="width: 20%;">Specification / Model</th>
+      <th style="width: 35%;">Engineering Purpose & Notes</th>
+      <th style="width: 15%;">Total Quantity</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td class="code-cell">D1</td>
+      <td><strong>Solderless Breadboards (Full)</strong></td>
+      <td>MB-102 (830 tie points)</td>
+      <td>Central Hub assembly (ESP32-S3 + ILI9341 display + power modules)</td>
+      <td>1 Board</td>
+    </tr>
+    <tr>
+      <td class="code-cell">D2</td>
+      <td><strong>Solderless Breadboards (Half)</strong></td>
+      <td>400 tie points</td>
+      <td>Cot Listening Nodes 1, 2, and 3 bench testing</td>
+      <td>3 Boards</td>
+    </tr>
+    <tr>
+      <td class="code-cell">D3</td>
+      <td><strong>Mini Breadboard / Perfboard</strong></td>
+      <td>170 tie points / 5 × 7 cm PCB</td>
+      <td>Caregiver Wearable Wristband prototype layout</td>
+      <td>1 Board</td>
+    </tr>
+    <tr>
+      <td class="code-cell">D4</td>
+      <td><strong>Male-to-Male Jumper Wires</strong></td>
+      <td>65-piece assorted lengths</td>
+      <td>Breadboard point-to-point power and signal wiring</td>
+      <td>2 Packs</td>
+    </tr>
+    <tr>
+      <td class="code-cell">D5</td>
+      <td><strong>Male-to-Female Dupont Wires</strong></td>
+      <td>40-pin 20 cm ribbon cable</td>
+      <td>Direct connection from breadboards to INMP441, ILI9341, and SSD1306 headers</td>
+      <td>2 Packs</td>
+    </tr>
+    <tr>
+      <td class="code-cell">D6</td>
+      <td><strong>High-Speed USB-C Data Cables</strong></td>
+      <td>1.0 m shielded USB-A to USB-C</td>
+      <td>Must support data sync (D+ / D− lines intact), not power-only charging cables</td>
+      <td>3 Cables</td>
+    </tr>
+    <tr>
+      <td class="code-cell">D7</td>
+      <td><strong>2-Pin JST-PH 2.0 mm Pigtails</strong></td>
+      <td>Male & Female pre-crimped leads</td>
+      <td>Modular battery quick-disconnects for TP4056 charging boards</td>
+      <td>5 Pairs</td>
+    </tr>
+    <tr>
+      <td class="code-cell">D8</td>
+      <td><strong>Rosin-Core Solder Wire</strong></td>
+      <td>63/37 Sn/Pb (or Sn-Cu Lead-Free), 0.8 mm</td>
+      <td>Soldering header pins to ESP32-C3 SuperMini, INMP441, and flyback diode</td>
+      <td>1 Spool (50g)</td>
+    </tr>
+    <tr>
+      <td class="code-cell">D9</td>
+      <td><strong>Heat-Shrink Tubing Assortment</strong></td>
+      <td>1.5 mm, 2.5 mm, 4.0 mm polyolefin</td>
+      <td>Insulating diode leads, motor joints, and battery terminals safely</td>
+      <td>1 Assortment Kit</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- Master Resistor & Capacitor Identification Cheat Sheet -->
+<div class="section-title">
+  <span>5. Master Hardware Identification Quick-Reference</span>
+  <span class="section-badge">Bench Reference</span>
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th style="width: 25%;">Component Type</th>
+      <th style="width: 25%;">Value / Spec</th>
+      <th style="width: 25%;">Physical Stamp / Marking</th>
+      <th style="width: 25%;">Color Bands / Polarity Rule</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Decoupling / Filter Capacitor</strong></td>
+      <td>100 nF (0.1 µF, 50V)</td>
+      <td><span class="badge-spec">104</span> (or 104K, 104Z)</td>
+      <td>Non-polar ceramic disc (either direction)</td>
+    </tr>
+    <tr>
+      <td><strong>Bulk Buffer Capacitor</strong></td>
+      <td>47 µF – 100 µF (25V)</td>
+      <td>Values printed on can (e.g. 100µF 25V)</td>
+      <td>White/light stripe marks Negative (−) lead (shorter leg)</td>
+    </tr>
+    <tr>
+      <td><strong>Battery Divider Resistor</strong></td>
+      <td>100 kΩ (0.25W 1%)</td>
+      <td>—</td>
+      <td>
+        <div class="swatch-group">
+          <span class="swatch swatch-brown">BRN</span>
+          <span class="swatch swatch-black">BLK</span>
+          <span class="swatch swatch-yellow">YEL</span>
+          <span class="swatch swatch-gold">GLD</span>
+        </div>
+      </td>
+    </tr>
+    <tr>
+      <td><strong>LED Current-Limiting Resistor</strong></td>
+      <td>330 Ω (0.25W 5%)</td>
+      <td>—</td>
+      <td>
+        <div class="swatch-group">
+          <span class="swatch swatch-orange">ORG</span>
+          <span class="swatch swatch-orange">ORG</span>
+          <span class="swatch swatch-brown">BRN</span>
+          <span class="swatch swatch-gold">GLD</span>
+        </div>
+      </td>
+    </tr>
+    <tr>
+      <td><strong>Gate Ringing / Backlight Resistor</strong></td>
+      <td>100 Ω (0.25W 5%)</td>
+      <td>—</td>
+      <td>
+        <div class="swatch-group">
+          <span class="swatch swatch-brown">BRN</span>
+          <span class="swatch swatch-black">BLK</span>
+          <span class="swatch swatch-brown">BRN</span>
+          <span class="swatch swatch-gold">GLD</span>
+        </div>
+      </td>
+    </tr>
+    <tr>
+      <td><strong>Gate Pulldown Resistor</strong></td>
+      <td>10 kΩ (0.25W 5%)</td>
+      <td>—</td>
+      <td>
+        <div class="swatch-group">
+          <span class="swatch swatch-brown">BRN</span>
+          <span class="swatch swatch-black">BLK</span>
+          <span class="swatch swatch-orange">ORG</span>
+          <span class="swatch swatch-gold">GLD</span>
+        </div>
+      </td>
+    </tr>
+    <tr>
+      <td><strong>Flyback Snubber Diode</strong></td>
+      <td>1N5819 (40V 1A Schottky)</td>
+      <td><span class="badge-spec">1N5819</span> printed on body</td>
+      <td><strong>Silver band marks Cathode (−)</strong> (connect to 3.3V)</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="footer-sig">
+  <span>Document Generated: October 2026 | Technical Project Documentation</span>
+  <span>Multi-Node Infant Cry Detection System — Department of Computer Engineering</span>
+</div>
+
+</body>
+</html>

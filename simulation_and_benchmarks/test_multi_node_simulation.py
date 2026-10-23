@@ -85,7 +85,7 @@ class SimulatedC3Node:
         return float(rms)
 
     def get_telemetry_packet(self):
-        """Tier 1: 12-byte Telemetry Packet"""
+        """Tier 1: 14-byte Telemetry Packet"""
         self.seq_num += 1
         rms = self.compute_100ms_rms()
         return {

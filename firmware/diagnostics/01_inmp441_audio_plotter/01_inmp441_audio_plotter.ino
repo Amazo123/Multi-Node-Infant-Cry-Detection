@@ -29,6 +29,7 @@
 
 #define SAMPLE_RATE       16000
 #define BLOCK_SAMPLES     256
+#define ONBOARD_LED 8
 
 int32_t raw_i2s_buffer[BLOCK_SAMPLES];
 int16_t pcm_samples[BLOCK_SAMPLES];
@@ -72,17 +73,24 @@ void setup_i2s() {
 }
 
 void setup() {
+    pinMode(ONBOARD_LED, OUTPUT);
+    digitalWrite(ONBOARD_LED, LOW); // Turn LED ON (Active-LOW)
     Serial.begin(115200);
-    while (!Serial && millis() < 2000);
+    // Wait up to 5 seconds for Serial Monitor to connect, blinking the LED
+    uint32_t start = millis();
+    while (!Serial && (millis() - start < 5000)) {
+        digitalWrite(ONBOARD_LED, !digitalRead(ONBOARD_LED));
+        delay(100);
+    }
+    digitalWrite(ONBOARD_LED, LOW); // Solid ON when ready
     delay(500);
-
     Serial.println("\n==============================================");
-    Serial.println("  INMP441 I2S HARDWARE CHECKOUT TOOL");
+    Serial.println("  INMP441 I2S HARDWARE CHECKOUT TOOL (SuperMini)");
     Serial.println("  Switch to Serial Plotter for live graph!");
     Serial.println("==============================================");
-
     setup_i2s();
 }
+
 
 void loop() {
     size_t bytes_read = 0;

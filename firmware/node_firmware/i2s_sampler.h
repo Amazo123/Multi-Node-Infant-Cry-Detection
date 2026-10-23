@@ -17,12 +17,12 @@
 #define AUDIO_WINDOW_SEC     2.0f
 #define AUDIO_BUFFER_SAMPLES (int)(AUDIO_SAMPLE_RATE * AUDIO_WINDOW_SEC) // 32,000 samples
 
-// Default Pin Configuration for ESP32-S3 and INMP441 Microphone
-// (Adjustable according to your board routing)
-#define I2S_PORT             I2S_NUM_0
-#define I2S_SCK_PIN          4   // Serial Clock (BCLK)
-#define I2S_WS_PIN           5   // Word Select (LRCK)
-#define I2S_SD_PIN           6   // Serial Data (DIN/DOUT)
+#include "pins.h"
+
+// Default Pin Configuration for INMP441 Microphone (from pins.h)
+#define I2S_SCK_PIN          PIN_INMP441_SCK  // GPIO 5: Serial Clock (BCLK)
+#define I2S_WS_PIN           PIN_INMP441_WS   // GPIO 6: Word Select (LRCK)
+#define I2S_SD_PIN           PIN_INMP441_SD   // GPIO 7: Serial Data (DIN on MCU)
 
 class I2SSampler {
 public:

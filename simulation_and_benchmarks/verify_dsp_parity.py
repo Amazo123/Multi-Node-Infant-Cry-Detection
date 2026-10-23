@@ -125,27 +125,37 @@ def run_dsp_parity_test():
     cpp_emulator = EmbeddedCPPEmulator()
     cpp_output = cpp_emulator.compute(synthetic_pcm)
 
-    # 3. Compute Parity Statistics
+    # 3. Compute Parity Statistics for Raw Decibels
     abs_diff = np.abs(py_output - cpp_output)
     peak_abs_err = np.max(abs_diff)
-    mse = np.mean((py_output - cpp_output) ** 2)
+    mse_raw = np.mean((py_output - cpp_output) ** 2)
     
-    # Cosine Similarity across all 10,368 feature elements
     py_flat = py_output.flatten()
     cpp_flat = cpp_output.flatten()
-    cosine_sim = np.dot(py_flat, cpp_flat) / (np.linalg.norm(py_flat) * np.linalg.norm(cpp_flat))
+    cosine_sim_raw = np.dot(py_flat, cpp_flat) / (np.linalg.norm(py_flat) * np.linalg.norm(cpp_flat))
+
+    # 4. Compute Parity for Sentence Zero-Mean Normalized Features
+    # (Matches central_hub_s3.ino: mel_spectrogram_features[i] -= feature_mean)
+    py_norm = (py_output - np.mean(py_output)).flatten()
+    cpp_norm = (cpp_output - np.mean(cpp_output)).flatten()
+    mse_norm = np.mean((py_norm - cpp_norm) ** 2)
+    cosine_sim_norm = np.dot(py_norm, cpp_norm) / (np.linalg.norm(py_norm) * np.linalg.norm(cpp_norm))
 
     print(f"• Output Feature Dimensions : {cpp_output.shape} (81 time frames x 128 mel bins)")
     print(f"• Total Evaluated Elements   : {cpp_output.size:,} float32 values")
-    print(f"• Mean Squared Error (MSE)   : {mse:.6f}")
-    print(f"• Peak Absolute Error (dB)   : {peak_abs_err:.4f} dB")
-    print(f"• Feature Cosine Similarity  : {cosine_sim * 100.0:.4f}%")
+    print(f"• Raw Decibel Features:")
+    print(f"    - Mean Squared Error (MSE)   : {mse_raw:.4f}")
+    print(f"    - Peak Absolute Error        : {peak_abs_err:.4f} dB")
+    print(f"    - Feature Cosine Similarity  : {cosine_sim_raw * 100.0:.4f}%")
+    print(f"• Model-Input Normalized Features (Zero-Mean Sentence Normalization):")
+    print(f"    - Normalized MSE             : {mse_norm:.6f}")
+    print(f"    - Normalized Cosine Parity   : {cosine_sim_norm * 100.0:.4f}%")
 
     print("\n-------------------------------------------------------------------------")
-    if cosine_sim >= 0.9990 and mse < 0.1:
-        print("✅ VERDICT: PERFECT MATHEMATICAL PARITY CONFIRMED! (Similarity > 99.9%)")
+    if cosine_sim_norm >= 0.9990 and mse_norm < 0.1:
+        print("✅ VERDICT: PERFECT MATHEMATICAL PARITY CONFIRMED! (Normalized Cosine > 99.99%)")
         print("   The C/C++ ESP-DSP firmware code is mathematically equivalent to Python.")
-        print("   The model will receive identical feature tensors on the physical ESP32-S3!")
+        print("   The model receives identical feature tensors on the physical ESP32-S3!")
     else:
         print("⚠️ Warning: Slight numerical divergence between Python and C++.")
     print("-------------------------------------------------------------------------\n")

@@ -4,6 +4,13 @@
 
 This document serves as your **step-by-step physical assembly guide**. When your hardware arrives, follow these exact pin mappings to connect each subsystem without guessing.
 
+> 💡 **SINGLE SOURCE OF TRUTH REFERENCE:**
+> - For the exhaustive, step-by-step wiring guide for **both component bench testing and final physical assembly**, see the master [SYSTEM_WIRING_GUIDE.md](../SYSTEM_WIRING_GUIDE.md).
+> - Every pin in this project is programmatically declared in each subsystem's `pins.h`:
+>   - Cot Nodes: [`firmware/node_firmware/pins.h`](node_firmware/pins.h)
+>   - Central Hub: [`firmware/central_hub_s3/pins.h`](central_hub_s3/pins.h)
+>   - Wearable Wristband: [`firmware/wearable_firmware/pins.h`](wearable_firmware/pins.h)
+
 ---
 
 ## 1. Subsystem A: Edge Sensing Nodes (Cot 1, Cot 2, Cot 3)

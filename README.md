@@ -76,13 +76,13 @@ Dual Status LEDs               Dual Status LEDs               Dual Status LEDs
 1. **Cot Sensing Nodes (Cots 1, 2, and 3)**:
    * Powered by the **ESP32-C3-DevKitC-02** (RISC-V single-core @ 160 MHz).
    * Continuously captures 16 kHz 16-bit mono audio from an omnidirectional **INMP441 digital MEMS microphone** over I2S DMA into a rolling 64 KB circular ring buffer.
-   * Calculates Root-Mean-Square (RMS) audio energy every 100 ms and broadcasts lightweight 12-byte telemetry packets over ESP-NOW.
+   * Calculates Root-Mean-Square (RMS) audio energy every 100 ms and broadcasts lightweight 14-byte telemetry packets over ESP-NOW.
    * Monitors battery voltage via a precision resistor divider on `GPIO 1` (`ADC1_CH1`).
    * Provides dual-LED status indicators: an active-HIGH Red LED on `GPIO 4` for battery state and an active-LOW Blue LED on `GPIO 9` for wireless link connectivity.
 2. **Central Intelligence Hub**:
    * Powered by the **ESP32-S3-DevKitC-1 N16R8** (Dual-Core Xtensa LX7 @ 240 MHz, 16MB Flash, 8MB Octal PSRAM).
    * Monitors telemetry streams from all three cots. When an acoustic surge exceeds the trigger threshold ($0.18$), the hub identifies the loudest node and issues a unicast pull command (`AUDIO_REQ`).
-   * Reassembles 320 incoming ESP-NOW audio packets (64 KB total) directly inside its 8MB Octal PSRAM within 100 ms.
+   * Reassembles 320 incoming ESP-NOW audio packets (64 KB total) directly inside its 8MB Octal PSRAM within ~260 ms.
    * Extracts a 128-band Log-Mel spectrogram using hardware-accelerated **ESP-DSP** routines.
    * Executes edge neural network inference using the **TinyCryNet** model to confirm infant cry vocalizations while rejecting background disturbances.
    * Renders real-time telemetry cards, live RMS bars, and alert banners onto a 2.4-inch **ILI9341 SPI color TFT display** (240×320 resolution).
@@ -101,8 +101,8 @@ Standard Wi-Fi relies on access point associations, IP allocations, and TCP/UDP 
 
 Streaming uncompressed 16 kHz 16-bit mono PCM audio ($32,000\text{ bytes/second} = 64,000\text{ bytes}$ for a 2-second window) continuously from three nodes would saturate the 2.4 GHz spectrum and cause severe packet collisions. This project solves that bottleneck using a **two-tier demand-pull protocol**:
 
-* **Tier 1 (Continuous Lightweight Telemetry)**: Every $100\text{ ms}$, each cot node broadcasts a 12-byte telemetry packet containing its node ID, sequence counter, RMS acoustic energy, and battery voltage. This uses less than 1% of available RF channel capacity.
-* **Tier 2 (On-Demand Audio Fetch)**: When a cot's RMS energy crosses the trigger threshold ($0.18$), the Central Hub identifies the loudest node as the candidate cot and unicasts an `AUDIO_REQ` packet. The candidate node freezes its DMA ring buffer and streams **320 packets (200 bytes audio payload each)** at high speed. The S3 reassembles all 320 fragments directly inside external PSRAM in under $100\text{ ms}$, ready for Log-Mel spectrogram computation.
+* **Tier 1 (Continuous Lightweight Telemetry)**: Every $100\text{ ms}$, each cot node broadcasts a 14-byte telemetry packet containing its node ID, sequence counter, RMS acoustic energy, and battery voltage. This uses less than 1% of available RF channel capacity.
+* **Tier 2 (On-Demand Audio Fetch)**: When a cot's RMS energy crosses the trigger threshold ($0.18$), the Central Hub identifies the loudest node as the candidate cot and unicasts an `AUDIO_REQ` packet. The candidate node freezes its DMA ring buffer and streams **320 packets (200 bytes audio payload each)** at high speed with 800 µs pacing. The S3 reassembles all 320 fragments directly inside external PSRAM in under $300\text{ ms}$, ready for Log-Mel spectrogram computation.
 
 ---
 
@@ -131,10 +131,11 @@ For an exhaustive, file-by-file breakdown with detailed technical descriptions, 
 
 ```
 Multi-node/
+├── SYSTEM_WIRING_GUIDE.md            # Master physical wiring manual for bench testing & final execution assembly
 ├── 📁 firmware/                      # C/C++ embedded firmware for all 5 MCUs, schematics, diagnostics & partition maps
-│   ├── central_hub_s3/               # Central Intelligence Hub firmware (ESP32-S3 N16R8)
-│   ├── node_firmware/                # Cot Sensing Nodes 1, 2, and 3 firmware (ESP32-C3-DevKitC-02)
-│   ├── wearable_firmware/            # Caregiver Wearable Alert Wristband firmware (ESP32-C3 SuperMini)
+│   ├── central_hub_s3/               # Central Intelligence Hub firmware (ESP32-S3 N16R8) + pins.h
+│   ├── node_firmware/                # Cot Sensing Nodes 1, 2, and 3 firmware (ESP32-C3-DevKitC-02) + pins.h
+│   ├── wearable_firmware/            # Caregiver Wearable Alert Wristband firmware (ESP32-C3 SuperMini) + pins.h
 │   ├── common/                       # Shared wire protocol headers & ESP-NOW struct definitions
 │   ├── diagnostics/                  # 5 standalone hardware unit-test sketches for bench bring-up
 │   ├── HARDWARE_SCHEMATICS.md        # Comprehensive pinout, resistor divider & electrical connection tables

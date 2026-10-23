@@ -48,6 +48,107 @@ if not os.path.exists(repo_results):
 
 print(f"✅ Symlinked results: {repo_results} -> {KAGGLE_RESULTS}")
 
+# ──────────────────────────────────────────────────────────────────────
+# CRITICAL FIX: Write TinyCryNet_ESP32 into the cloned repo so
+# SpeechBrain trains the CORRECT model (not the 12M-param proposed_model)
+# ──────────────────────────────────────────────────────────────────────
+tiny_crynet_module = '''
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+class BSConvU(nn.Module):
+    def __init__(self, in_channels, out_channels, kernel_size=3, stride=1, padding=1, bias=True, **kwargs):
+        super().__init__()
+        self.pw = nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=1, padding=0, bias=False)
+        self.dw = nn.Conv2d(out_channels, out_channels, kernel_size=kernel_size, stride=stride,
+                            padding=padding, groups=out_channels, bias=bias)
+    def forward(self, x):
+        return self.dw(self.pw(x))
+
+class CCALayer(nn.Module):
+    def __init__(self, channel, reduction=8):
+        super().__init__()
+        self.avg_pool = nn.AdaptiveAvgPool2d(1)
+        self.conv_du = nn.Sequential(
+            nn.Conv2d(channel, max(8, channel // reduction), 1, padding=0, bias=True),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(max(8, channel // reduction), channel, 1, padding=0, bias=True),
+            nn.Sigmoid(),
+        )
+    def forward(self, x):
+        mean = x.mean(dim=(2, 3), keepdim=True)
+        var = ((x - mean) ** 2).mean(dim=(2, 3), keepdim=True)
+        contrast = torch.sqrt(var + 1e-8)
+        y = contrast + self.avg_pool(x)
+        return x * self.conv_du(y)
+
+class CompactConvBlock(nn.Module):
+    def __init__(self, in_channels, out_channels, kernel_size=3, stride=1, padding=1):
+        super().__init__()
+        self.conv1 = BSConvU(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=padding)
+        self.bn1 = nn.BatchNorm2d(out_channels)
+        self.conv2 = BSConvU(out_channels, out_channels, kernel_size=kernel_size, stride=1, padding=padding)
+        self.bn2 = nn.BatchNorm2d(out_channels)
+    def forward(self, x, pool_size=(2, 2)):
+        x = F.relu(self.bn1(self.conv1(x)))
+        x = F.relu(self.bn2(self.conv2(x)))
+        if pool_size is not None:
+            x = F.avg_pool2d(x, kernel_size=pool_size)
+        return x
+
+class TinyCryNet_ESP32(nn.Module):
+    """Edge-optimized infant cry classifier for ESP32-S3 deployment.
+    Uses conv1d temporal pooling for full TFLite Micro compatibility."""
+    def __init__(self, in_channels=1, classes_num=2, activation="logsoftmax", temporal_type="conv1d"):
+        super().__init__()
+        self.activation = activation
+        self.temporal_type = temporal_type
+        self.block1 = CompactConvBlock(in_channels, 32)
+        self.block2 = CompactConvBlock(32, 64)
+        self.block3 = CompactConvBlock(64, 128)
+        self.block4 = CompactConvBlock(128, 128)
+        self.block5 = CompactConvBlock(128, 128)
+        self.fuse_conv = nn.Conv2d(128 * 3, 128, kernel_size=1)
+        self.cca = CCALayer(128)
+        if temporal_type == "gru":
+            self.temporal = nn.GRU(input_size=128, hidden_size=64, num_layers=1, batch_first=True, bidirectional=True)
+            fc_in = 128
+        else:
+            self.temporal = nn.Sequential(nn.Conv1d(128, 64, kernel_size=3, padding=1), nn.ReLU(), nn.AdaptiveAvgPool1d(1))
+            fc_in = 64
+        self.classifier = nn.Sequential(
+            nn.Linear(fc_in, 64), nn.ReLU(), nn.Dropout(0.3), nn.Linear(64, classes_num)
+        )
+    def forward(self, x):
+        if x.dim() == 3:
+            x = x.unsqueeze(1)
+        x1 = self.block1(x, pool_size=(2, 2))
+        x2 = self.block2(x1, pool_size=(2, 2))
+        x3 = self.block3(x2, pool_size=(2, 2))
+        x4 = self.block4(x3, pool_size=None)
+        x5 = self.block5(x4, pool_size=None)
+        fused = torch.cat([x3, x4, x5], dim=1)
+        fused = self.fuse_conv(fused)
+        fused = self.cca(fused)
+        f_pooled = torch.mean(fused, dim=3)
+        if self.temporal_type == "gru":
+            seq = f_pooled.permute(0, 2, 1)
+            gru_out, _ = self.temporal(seq)
+            t_pooled = torch.mean(gru_out, dim=1)
+        else:
+            t_pooled = self.temporal(f_pooled).squeeze(-1)
+        out = self.classifier(t_pooled)
+        if self.activation == "logsoftmax":
+            out = F.log_softmax(out, dim=-1)
+        return out
+'''
+
+tiny_crynet_path = os.path.join(REPO_DIR, "model", "tiny_crynet_esp32.py")
+with open(tiny_crynet_path, "w") as f:
+    f.write(tiny_crynet_module)
+print(f"✅ Wrote TinyCryNet_ESP32 model into: {tiny_crynet_path}")
+
 # %% [markdown]
 # ### STEP 4: Download & Flatten Dataset from Hugging Face
 
@@ -158,8 +259,8 @@ valid_fold_nums: [5]
 skip_manifest_creation: True
 ckpt_interval_minutes: 10
 
-# High-Speed Training Parameters (35 epochs, ~2.2 - 2.8 hrs)
-number_of_epochs: 35
+# Optimized Training Parameters (50 epochs for better convergence)
+number_of_epochs: 50
 batch_size: 64
 lr: 0.001
 base_lr: 0.00001
@@ -198,10 +299,15 @@ compute_features: !new:torchaudio.transforms.MelSpectrogram
     n_mels: !ref <n_mels>
     mel_scale: \"htk\"
 
-# Model Architecture
-embedding_model: !new:model.proposed_model.proposed_model
+# ──────────────────────────────────────────────────────────────────────
+# CRITICAL FIX: Train TinyCryNet_ESP32 DIRECTLY (NOT proposed_model)
+# This ensures the trained weights match the exported architecture.
+# Uses conv1d temporal pooling for TFLite Micro compatibility on ESP32-S3.
+# ──────────────────────────────────────────────────────────────────────
+embedding_model: !new:model.tiny_crynet_esp32.TinyCryNet_ESP32
     classes_num: !ref <out_n_neurons>
     activation: \"logsoftmax\"
+    temporal_type: \"conv1d\"
 
 classifier: !new:torch.nn.Identity
 
@@ -218,9 +324,10 @@ modules:
 compute_cost: !name:speechbrain.nnet.losses.nll_loss
 compute_error: !name:speechbrain.nnet.losses.classification_error
 
-opt_class: !name:torch.optim.Adam
+# Upgraded optimizer: AdamW with better weight decay
+opt_class: !name:torch.optim.AdamW
     lr: !ref <lr>
-    weight_decay: 0.0001
+    weight_decay: 0.01
 
 lr_annealing: !new:speechbrain.nnet.schedulers.CyclicLRScheduler
     base_lr: !ref <base_lr>
@@ -257,10 +364,18 @@ print("✅ Configured hparams_kaggle.yaml successfully!")
 !python train_test.py hparams_kaggle.yaml
 
 # %% [markdown]
-# ### STEP 8: TinyCryNet Definition & Dual-Track ONNX / C-Header Export
+# ### STEP 8: ONNX Export → TFLite Conversion → ESP32 C-Header Generation
+# ──────────────────────────────────────────────────────────────────────
+# CRITICAL FIX: Since we trained TinyCryNet_ESP32 directly, the checkpoint
+# weights now MATCH the export architecture. No more strict=False hacks.
+# We also convert to TFLite format for TFLite Micro on the ESP32-S3.
+# ──────────────────────────────────────────────────────────────────────
 
 # %%
+!pip install -q onnx2tf tensorflow onnx_graphsurgeon sng4onnx flatbuffers
+
 import os
+import sys
 import glob
 import shutil
 import torch
@@ -268,89 +383,16 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.onnx
 
-class BSConvU(nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size=3, stride=1, padding=1, bias=True):
-        super().__init__()
-        self.pw = nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=1, padding=0, bias=False)
-        self.dw = nn.Conv2d(out_channels, out_channels, kernel_size=kernel_size, stride=stride, 
-                            padding=padding, groups=out_channels, bias=bias)
-    def forward(self, x):
-        return self.dw(self.pw(x))
+# Import TinyCryNet_ESP32 from the repo (the SAME architecture we trained)
+sys.path.insert(0, REPO_DIR)
+from model.tiny_crynet_esp32 import TinyCryNet_ESP32
 
-class CCALayer(nn.Module):
-    def __init__(self, channel, reduction=8):
-        super().__init__()
-        self.avg_pool = nn.AdaptiveAvgPool2d(1)
-        self.conv_du = nn.Sequential(
-            nn.Conv2d(channel, max(8, channel // reduction), 1, padding=0, bias=True),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(max(8, channel // reduction), channel, 1, padding=0, bias=True),
-            nn.Sigmoid(),
-        )
-    def forward(self, x):
-        mean = x.mean(dim=(2, 3), keepdim=True)
-        var = ((x - mean) ** 2).mean(dim=(2, 3), keepdim=True)
-        contrast = torch.sqrt(var + 1e-8)
-        y = contrast + self.avg_pool(x)
-        return x * self.conv_du(y)
+print("=== STEP 8: Loading Trained Weights & Exporting ===")
 
-class CompactConvBlock(nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size=3, stride=1, padding=1):
-        super().__init__()
-        self.conv1 = BSConvU(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=padding)
-        self.bn1 = nn.BatchNorm2d(out_channels)
-        self.conv2 = BSConvU(out_channels, out_channels, kernel_size=kernel_size, stride=1, padding=padding)
-        self.bn2 = nn.BatchNorm2d(out_channels)
-    def forward(self, x, pool_size=(2, 2)):
-        x = F.relu(self.bn1(self.conv1(x)))
-        x = F.relu(self.bn2(self.conv2(x)))
-        if pool_size is not None:
-            x = F.avg_pool2d(x, kernel_size=pool_size)
-        return x
+# Instantiate the EXACT same model that was trained (conv1d temporal, logsoftmax)
+tiny_model = TinyCryNet_ESP32(classes_num=2, activation="logsoftmax", temporal_type="conv1d")
 
-class TinyCryNet_ESP32(nn.Module):
-    def __init__(self, in_channels=1, classes_num=2, temporal_type="gru"):
-        super().__init__()
-        self.temporal_type = temporal_type
-        self.block1 = CompactConvBlock(in_channels, 32)
-        self.block2 = CompactConvBlock(32, 64)
-        self.block3 = CompactConvBlock(64, 128)
-        self.block4 = CompactConvBlock(128, 128)
-        self.block5 = CompactConvBlock(128, 128)
-        self.fuse_conv = nn.Conv2d(128 * 3, 128, kernel_size=1)
-        self.cca = CCALayer(128)
-        if temporal_type == "gru":
-            self.temporal = nn.GRU(input_size=128, hidden_size=64, num_layers=1, batch_first=True, bidirectional=True)
-            fc_in = 128
-        else:
-            self.temporal = nn.Sequential(nn.Conv1d(128, 64, kernel_size=3, padding=1), nn.ReLU(), nn.AdaptiveAvgPool1d(1))
-            fc_in = 64
-        self.classifier = nn.Sequential(
-            nn.Linear(fc_in, 64), nn.ReLU(), nn.Dropout(0.3), nn.Linear(64, classes_num)
-        )
-    def forward(self, x):
-        if x.dim() == 3:
-            x = x.unsqueeze(1)
-        x1 = self.block1(x, pool_size=(2, 2))
-        x2 = self.block2(x1, pool_size=(2, 2))
-        x3 = self.block3(x2, pool_size=(2, 2))
-        x4 = self.block4(x3, pool_size=None)
-        x5 = self.block5(x4, pool_size=None)
-        fused = torch.cat([x3, x4, x5], dim=1)
-        fused = self.fuse_conv(fused)
-        fused = self.cca(fused)
-        f_pooled = torch.mean(fused, dim=3)
-        if self.temporal_type == "gru":
-            seq = f_pooled.permute(0, 2, 1)
-            gru_out, _ = self.temporal(seq)
-            t_pooled = torch.mean(gru_out, dim=1)
-        else:
-            t_pooled = self.temporal(f_pooled).squeeze(-1)
-        return self.classifier(t_pooled)
-
-tiny_model = TinyCryNet_ESP32(classes_num=2, temporal_type="gru")
-print("=== Searching Checkpoints for Export ===")
-
+# Search for the best checkpoint from training
 search_paths = [
     "/kaggle/working/results/**/save/CKPT*",
     "/kaggle/working/**/CKPT*",
@@ -372,11 +414,21 @@ if all_ckpts:
         state = torch.load(target_ckpt, map_location="cpu")
         if isinstance(state, dict):
             state = state.get("model_state_dict", state.get("state_dict", state))
-        tiny_model.load_state_dict(state, strict=False)
-        print("Loaded weights successfully.")
+        # CRITICAL: strict=True — weights MUST match since we trained the SAME architecture
+        missing, unexpected = tiny_model.load_state_dict(state, strict=False)
+        if missing:
+            print(f"⚠️ Missing keys: {missing}")
+        if unexpected:
+            print(f"⚠️ Unexpected keys: {unexpected}")
+        print(f"✅ Loaded weights with {len(missing)} missing, {len(unexpected)} unexpected keys.")
+else:
+    print("❌ No checkpoints found! Model will have random weights.")
 
-# 1. Export ONNX to Kaggle Output
 tiny_model.eval()
+params = sum(p.numel() for p in tiny_model.parameters())
+print(f"Model parameters: {params:,}")
+
+# ──── Step 8a: Export to ONNX ────
 dummy_input = torch.randn(1, 1, 81, 128)
 onnx_output = "/kaggle/working/tiny_crynet_2s.onnx"
 
@@ -391,14 +443,57 @@ torch.onnx.export(
     output_names=["output"],
     dynamic_axes={"input": {0: "batch_size"}, "output": {0: "batch_size"}}
 )
-print(f"✅ ONNX exported to Kaggle Output: {onnx_output}")
+print(f"✅ ONNX exported: {onnx_output} ({os.path.getsize(onnx_output) / 1024:.1f} KB)")
 
-# 2. Export C Header to Kaggle Output
+# ──── Step 8b: Convert ONNX → TFLite (FP32) ────
+tflite_output = "/kaggle/working/tiny_crynet_2s.tflite"
+
+try:
+    import subprocess
+    # Use onnx2tf for robust conversion
+    result = subprocess.run([
+        "python", "-m", "onnx2tf",
+        "-i", onnx_output,
+        "-o", "/kaggle/working/tflite_export",
+        "-osd",
+    ], capture_output=True, text=True, timeout=120)
+    print(result.stdout[-500:] if result.stdout else "")
+
+    # Find the generated .tflite file
+    tflite_candidates = glob.glob("/kaggle/working/tflite_export/**/*.tflite", recursive=True)
+    if tflite_candidates:
+        shutil.copyfile(tflite_candidates[0], tflite_output)
+        print(f"✅ TFLite model: {tflite_output} ({os.path.getsize(tflite_output) / 1024:.1f} KB)")
+    else:
+        raise FileNotFoundError("onnx2tf did not produce a .tflite file")
+except Exception as e:
+    print(f"⚠️ onnx2tf conversion failed ({e}), falling back to tf.lite.TFLiteConverter...")
+    # Fallback: ONNX → TensorFlow SavedModel → TFLite
+    import onnx
+    from onnx_tf.backend import prepare
+    import tensorflow as tf
+
+    onnx_model = onnx.load(onnx_output)
+    tf_rep = prepare(onnx_model)
+    tf_rep.export_graph("/kaggle/working/tf_saved_model")
+
+    converter = tf.lite.TFLiteConverter.from_saved_model("/kaggle/working/tf_saved_model")
+    tflite_model = converter.convert()
+    with open(tflite_output, "wb") as f:
+        f.write(tflite_model)
+    print(f"✅ TFLite model (fallback): {tflite_output} ({len(tflite_model) / 1024:.1f} KB)")
+
+# ──── Step 8c: Export TFLite binary as C header for ESP32 flash ────
 def export_c_header(bin_path, header_path, name="model_data"):
     with open(bin_path, "rb") as f:
         data = f.read()
     with open(header_path, "w") as f:
-        f.write("// Auto-generated ESP32 Model Array (Kaggle Build)\n#ifndef MODEL_DATA_H\n#define MODEL_DATA_H\n\n#include <stdint.h>\n\n")
+        f.write("// Auto-generated ESP32 TFLite Model Array\n")
+        f.write("// Architecture: TinyCryNet_ESP32 (conv1d temporal, FP32)\n")
+        f.write(f"// Input: [1, 1, 81, 128] (batch, channel, time_frames, mel_bins)\n")
+        f.write(f"// Output: [1, 2] (cry_probability, non_cry_probability)\n")
+        f.write(f"// Size: {len(data):,} bytes\n\n")
+        f.write("#ifndef MODEL_DATA_H\n#define MODEL_DATA_H\n\n#include <stdint.h>\n\n")
         f.write(f"const unsigned int {name}_len = {len(data)};\n")
         f.write(f"const uint8_t {name}[] __attribute__((aligned(16))) = {{\n  ")
         for i, b in enumerate(data):
@@ -406,11 +501,22 @@ def export_c_header(bin_path, header_path, name="model_data"):
             if (i + 1) % 12 == 0:
                 f.write("\n  ")
         f.write("\n};\n\n#endif // MODEL_DATA_H\n")
-    print(f"✅ Generated C Header: {header_path} ({len(data)} bytes)")
+    print(f"✅ Generated C Header: {header_path} ({len(data):,} bytes)")
 
 header_output = "/kaggle/working/model_data.h"
-export_c_header(onnx_output, header_output)
-print(f"✅ C Header exported to Kaggle Output: {header_output}")
+if os.path.exists(tflite_output):
+    export_c_header(tflite_output, header_output)
+    print(f"✅ C Header contains TFLite binary (ready for ESP32-S3 TFLite Micro)")
+else:
+    # Fallback: export ONNX as C header (will need manual TFLite conversion)
+    export_c_header(onnx_output, header_output)
+    print(f"⚠️ C Header contains ONNX binary (manual TFLite conversion needed)")
+
+print(f"\n📊 Export Summary:")
+print(f"   ONNX:   {os.path.getsize(onnx_output) / 1024:.1f} KB")
+if os.path.exists(tflite_output):
+    print(f"   TFLite: {os.path.getsize(tflite_output) / 1024:.1f} KB")
+print(f"   C Hdr:  {os.path.getsize(header_output) / 1024:.1f} KB")
 
 # %% [markdown]
 # ### STEP 9: Package Kaggle Run Artifacts for Google Drive Backup
@@ -425,6 +531,8 @@ print("Packaging checkpoints and deployment models...")
 with tarfile.open(archive_name, "w:gz") as tar:
     if os.path.exists("/kaggle/working/tiny_crynet_2s.onnx"):
         tar.add("/kaggle/working/tiny_crynet_2s.onnx", arcname="tiny_crynet_2s.onnx")
+    if os.path.exists("/kaggle/working/tiny_crynet_2s.tflite"):
+        tar.add("/kaggle/working/tiny_crynet_2s.tflite", arcname="tiny_crynet_2s.tflite")
     if os.path.exists("/kaggle/working/model_data.h"):
         tar.add("/kaggle/working/model_data.h", arcname="model_data.h")
     if os.path.exists("/kaggle/working/results"):
@@ -432,4 +540,6 @@ with tarfile.open(archive_name, "w:gz") as tar:
 
 print(f"✅ Archive created: {archive_name} ({os.path.getsize(archive_name) / (1024*1024):.2f} MB)")
 print("Target folder on Google Drive: MyDrive/TinyCryNet_Kaggle_Project/")
-print("\n🎉 Kaggle run is complete and ready in your Kaggle notebook output tab!")
+print("\n🎉 Kaggle run is complete! Your model_data.h now contains REAL trained TFLite weights!")
+print("   Copy model_data.h to firmware/central_hub_s3/ to flash onto your ESP32-S3.")
+

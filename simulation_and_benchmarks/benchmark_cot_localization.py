@@ -40,11 +40,12 @@ def generate_cry_waveform(duration_sec=2.0):
     envelope = np.sin(np.pi * np.linspace(0, 1, len(t))) ** 0.5
     return (harmonic * envelope * 0.70).astype(np.float32)
 
-def run_cot_localization_benchmark(num_trials_per_snr=30):
+def run_cot_localization_benchmark(num_trials_per_snr=100):
     snr_levels_db = [20, 15, 10, 5, 0, -5]
+    total_benchmark_trials = num_trials_per_snr * len(snr_levels_db)
     print("\n=========================================================================")
     print("   📊 Multi-Node Cot Localization & Acoustic Stress-Test Benchmark      ")
-    print("   Total Trials: 180 (30 trials per SNR level across Cot 1, 2, 3)        ")
+    print(f"   Total Trials: {total_benchmark_trials} ({num_trials_per_snr} trials per SNR level across Cot 1, 2, 3)       ")
     print("=========================================================================\n")
 
     overall_confusion_matrix = np.zeros((3, 3), dtype=int)
@@ -122,4 +123,4 @@ def run_cot_localization_benchmark(num_trials_per_snr=30):
     print("=========================================================================\n")
 
 if __name__ == "__main__":
-    run_cot_localization_benchmark(num_trials_per_snr=30)
+    run_cot_localization_benchmark(num_trials_per_snr=100)

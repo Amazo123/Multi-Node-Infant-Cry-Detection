@@ -14,7 +14,7 @@ This repository contains the authoritative, distributed embedded firmware for th
 [ COT 01 ]                [ COT 02 ]                [ COT 03 ]
 ESP32-C3 Node 1           ESP32-C3 Node 2           ESP32-C3 Node 3
 INMP441 Microphone        INMP441 Microphone        INMP441 Microphone
-MAX17048 Fuel Gauge       MAX17048 Fuel Gauge       MAX17048 Fuel Gauge
+Resistor Divider ADC      Resistor Divider ADC      Resistor Divider ADC
 64KB Ring Buffer          64KB Ring Buffer          64KB Ring Buffer
       │                         │                         │
       │ 100ms Telemetry         │ 100ms Telemetry         │ 100ms Telemetry
@@ -30,7 +30,7 @@ MAX17048 Fuel Gauge       MAX17048 Fuel Gauge       MAX17048 Fuel Gauge
                     │ 3. ESP-DSP Log-Mel Extr │
                     │ 4. TinyCryNet Inference │
                     │ 5. Decision & Cooldown  │
-                    │ 6. Central OLED Console │
+                    │ 6. ILI9341 Color TFT    │
                     └───────────┬─────────────┘
                                 │
                                 │ BLE GATT (< 30ms latency)
@@ -51,18 +51,33 @@ MAX17048 Fuel Gauge       MAX17048 Fuel Gauge       MAX17048 Fuel Gauge
 ```
 firmware/
 ├── README.md                      <-- This master architecture document
+├── HARDWARE_SCHEMATICS.md         <-- Circuit schematics and electrical specifications
 ├── common/
-│   └── protocol.h                 <-- Shared protocol: Telemetry (12B), Audio Req (7B), Audio Frag (208B), Wearable Alert (6B)
+│   └── protocol.h                 <-- Shared protocol: Telemetry (14B), Audio Req (7B), Audio Frag (208B), Wearable Alert (6B)
 │
 ├── node_firmware/                 <-- Flashed onto Cot 1, Cot 2, and Cot 3 (ESP32-C3-DevKitC-02)
+│   ├── pins.h                     <-- Centralized GPIO map & LED drive logic for Cot Nodes
 │   └── node_firmware.ino          <-- I2S DMA 16kHz sampling, 64KB rolling buffer, 100ms RMS, 320-packet audio burst
 │
-├── central_hub_s3/                <-- Flashed onto Central Intelligence Hub (ESP32-S3-DevKitC-1)
-│   └── central_hub_s3.ino         <-- Cot selection, 320-fragment reassembly into PSRAM, ESP-DSP, TinyML, BLE Server
+├── central_hub_s3/                <-- Flashed onto Central Intelligence Hub (ESP32-S3-DevKitC-1 N16R8)
+│   ├── pins.h                     <-- Centralized GPIO map & PSRAM safety definitions for Hub
+│   ├── central_hub_s3.ino         <-- Cot selection, 320-fragment reassembly into PSRAM, TinyML, BLE Server
+│   ├── dsp_mel_extractor.h/.cpp   <-- Hardware-accelerated ESP-DSP Log-Mel spectrogram engine
+│   └── model_data.h               <-- Quantized TinyCryNet neural network weights
 │
-└── wearable_firmware/             <-- Flashed onto Caregiver Wristband (ESP32-C3-MINI)
-    └── wearable_firmware.ino      <-- BLE GATT Client, pulsed haptic motor driver, Cot ID OLED display
+├── wearable_firmware/             <-- Flashed onto Caregiver Wristband (ESP32-C3 SuperMini)
+│   ├── pins.h                     <-- Centralized GPIO map & MOSFET driver schematic for Wearable
+│   └── wearable_firmware.ino      <-- BLE GATT Client, pulsed haptic motor driver, Cot ID OLED display
+│
+└── diagnostics/                   <-- Standalone hardware verification tools (Bench testing)
+    ├── 01_inmp441_audio_plotter/  <-- Live serial audio waveform plotter (I2S verification)
+    ├── 02_esp_now_range_probe/    <-- Dual-node wireless packet loss & RSSI range tester
+    ├── 03_wearable_haptic_oled_test/ <-- I2C bus scanner, OLED graphic cycle & haptic motor test
+    ├── 04_node_led_battery_test/  <-- Cot LED logic (Active-HIGH / Active-LOW) & ADC divider test
+    └── 05_central_hub_ili9341_test/ <-- SPI2 TFT color bar rendering & benchmark
 ```
+
+See the root [SYSTEM_WIRING_GUIDE.md](../SYSTEM_WIRING_GUIDE.md) for the complete, step-by-step physical wiring manual for both the component testing phase and final project execution.
 
 ---
 
@@ -71,13 +86,13 @@ firmware/
 ESP-NOW frames have a hardware limit of 250 bytes. To transfer a 2-second audio buffer ($16,000 \times 2 \times 2 = 64,000\text{ bytes}$), the system employs a two-tier protocol:
 
 ### Tier 1: Continuous Lightweight Telemetry
-- Every $100\text{ ms}$, each node sends a **12-byte telemetry packet** containing `[msg_type, node_id, seq_num, timestamp, rms_amplitude, battery_mv]`.
+- Every $100\text{ ms}$, each node sends a **14-byte telemetry packet** containing `[msg_type, node_id, seq_num, timestamp, rms_amplitude, battery_mv]`.
 - The central S3 tracks the ambient room sound and compares relative amplitude across all three cots.
 
 ### Tier 2: On-Demand 64 KB Audio Fetch
 - When a node's RMS exceeds `RMS_TRIGGER_THRESHOLD` ($0.18$), the S3 selects that node as the candidate cot and broadcasts an `AUDIO_REQ` packet.
 - The candidate node immediately freezes its recent 64 KB buffer and streams **320 packets (200 bytes audio payload each)**.
-- Total transfer time is **$\sim 100\text{ ms}$**, and the S3 reassembles the full buffer directly in **PSRAM**.
+- Total transfer time is **$\sim 260\text{ ms}$** (800 µs queue pacing), and the S3 reassembles the full buffer directly in **PSRAM**.
 
 ---
 

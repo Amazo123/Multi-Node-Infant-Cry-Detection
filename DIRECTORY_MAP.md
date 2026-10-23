@@ -12,10 +12,11 @@
 
 ```
 Multi-node/
+├── SYSTEM_WIRING_GUIDE.md            # Master physical wiring manual for bench testing & final execution assembly
 ├── 📁 firmware/                      # Production C/C++ embedded firmware across all microcontrollers
-│   ├── central_hub_s3/               # Central S3 Hub: candidate selection, PSRAM reassembly, ESP-DSP, TinyCryNet, TFT dashboard
-│   ├── node_firmware/                # Cot Nodes 1, 2, 3: I2S DMA circular buffer, 100ms RMS telemetry, dual LED signaling
-│   ├── wearable_firmware/            # Caregiver Wristband: BLE GATT client, SSD1306 OLED, IRLML2502TR haptic driver
+│   ├── central_hub_s3/               # Central S3 Hub: candidate selection, PSRAM reassembly, ESP-DSP, TinyCryNet, TFT dashboard + pins.h
+│   ├── node_firmware/                # Cot Nodes 1, 2, 3: I2S DMA circular buffer, 100ms RMS telemetry, dual LED signaling + pins.h
+│   ├── wearable_firmware/            # Caregiver Wristband: BLE GATT client, SSD1306 OLED, IRLML2502TR haptic driver + pins.h
 │   ├── common/                       # Central wire protocol definitions (protocol.h) shared by all firmware targets
 │   ├── diagnostics/                  # Standalone hardware bring-up and verification sketches
 │   ├── HARDWARE_SCHEMATICS.md        # Definitive pinout mappings, electrical safety limits, and circuit schematics
@@ -76,10 +77,10 @@ The `firmware/` directory contains all production embedded code running on the f
 
 #### A. Central Intelligence Hub (`firmware/central_hub_s3/`)
 * **`central_hub_s3.ino`**: This is the core supervisory application flashed onto the **ESP32-S3-DevKitC-1 N16R8**. It runs on dual Xtensa LX7 cores clocked at 240 MHz. Its primary responsibilities include:
-  1. *ESP-NOW Network Orchestration*: Listens continuously for 12-byte telemetry packets broadcast by the three cot nodes every 100 ms.
+  1. *ESP-NOW Network Orchestration*: Listens continuously for 14-byte telemetry packets broadcast by the three cot nodes every 100 ms.
   2. *Cot Candidate Selection & Spatial Localization*: Maintains a sliding energy comparison window across all active cots. When an acoustic surge occurs, it identifies the cot reporting the highest Root-Mean-Square (RMS) amplitude above the trigger threshold ($0.18$), pinpointing the true origin of the distress signal even in noisy nursery conditions.
   3. *High-Speed Audio Burst Pulling*: Dispatches a unicast `AUDIO_REQ` command to the candidate node, requesting its frozen 2-second audio history.
-  4. *Octal PSRAM Reassembly*: Captures 320 consecutive audio fragment packets (200 bytes each, totaling 64,000 bytes) arriving over ESP-NOW, reconstructing the uncompressed 16 kHz 16-bit PCM waveform directly in high-speed external PSRAM in under 100 ms.
+  4. *Octal PSRAM Reassembly*: Captures 320 consecutive audio fragment packets (200 bytes each, totaling 64,000 bytes) arriving over ESP-NOW, reconstructing the uncompressed 16 kHz 16-bit PCM waveform directly in high-speed external PSRAM in ~260 ms.
   5. *Edge Feature Extraction (ESP-DSP)*: Computes a 128-band Log-Mel spectrogram using hardware-accelerated discrete Hann windowing, Radix-2 Fast Fourier Transforms (FFT), and triangular Mel filterbanks.
   6. *Neural Network Inference*: Executes the TinyCryNet convolutional neural network against the extracted spectrogram to classify whether the vocalization is an infant cry versus ambient nursery disturbance.
   7. *Graphical Telemetry Dashboard*: Drives a 2.4-inch ILI9341 SPI color TFT display (240×320 resolution), rendering dynamic live audio energy bars for Cot 1, Cot 2, and Cot 3, link health status, battery levels, and flashing visual alert banners.
@@ -90,7 +91,7 @@ The `firmware/` directory contains all production embedded code running on the f
 * **`node_firmware.ino`**: The edge firmware flashed onto the three **ESP32-C3-DevKitC-02** units positioned at Cot 1, Cot 2, and Cot 3. It operates on a single 32-bit RISC-V core clocked at 160 MHz. Key functions include:
   1. *Continuous DMA Audio Acquisition*: Operates an INMP441 omnidirectional MEMS microphone over an I2S digital audio bus, continuously pulling 16 kHz 16-bit mono audio into a 64 KB circular ring buffer using direct memory access (DMA) without CPU intervention.
   2. *Low-Latency Acoustic Energy Calculation*: Every 100 ms, computes the Root-Mean-Square (RMS) amplitude of the most recent 1,600 audio samples.
-  3. *Lightweight Telemetry Broadcasting*: Encapsulates node ID, sequence counter, RMS value, and battery millivolts into a 12-byte telemetry packet broadcast over ESP-NOW.
+  3. *Lightweight Telemetry Broadcasting*: Encapsulates node ID, sequence counter, RMS value, and battery millivolts into a 14-byte telemetry packet broadcast over ESP-NOW.
   4. *Audio Freeze and Burst Transmission*: Upon receiving an `AUDIO_REQ` command from the hub, freezes the circular buffer to prevent overwriting, slices the 64,000 bytes of audio into 320 structured packets (208 bytes each, including sequence headers), and streams them over ESP-NOW in a rapid burst.
   5. *Battery Voltage Sensing*: Measures the single-cell Li-Po battery voltage through a precision 100kΩ/100kΩ resistor divider connected to GPIO 1 (`ADC1_CH1`), which remains fully operational alongside active Wi-Fi.
   6. *Dual-LED Indicator Signaling*: Manages an active-HIGH Red LED on GPIO 4 to indicate battery status (solid for healthy, blinking for low battery) and an active-LOW Blue LED on GPIO 9 to show wireless link connectivity. GPIO 9 is wired with an external pull-up circuit to guarantee that the ESP32-C3 bootloader strapping requirements are strictly respected.
